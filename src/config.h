@@ -1,4 +1,6 @@
-#define BAR_HEIGHT 40
+#define FONT_SIZE 12
+#define BORDER_RADIUS 8
+#define BAR_HEIGHT 30
 #define MAX_CLIENTS 2
 
 #define BORDER_GAP 20
