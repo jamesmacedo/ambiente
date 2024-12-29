@@ -3,7 +3,7 @@
 #define BAR_HEIGHT 30
 #define MAX_CLIENTS 2
 
-#define BORDER_GAP 20
+#define BORDER_GAP 16
 #define GAP_SIZE 5
 #define MAX_WINDOWS 2
 #define MAX_WINDOWS_PER_ROW 2
