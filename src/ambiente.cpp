@@ -35,7 +35,9 @@ typedef struct client {
     bool fixed;
 } client;
 
-std::vector<client> clients;
+typedef struct workspace {
+    std::vector<client> clients;
+} workspace;
 
 static xcb_connection_t        *connection;
 static xcb_screen_t            *screen;
@@ -44,6 +46,8 @@ static xcb_window_t             root;
 static uint16_t                 modifiers;
 static xcb_keycode_t            keycode;
 static xcb_key_symbols_t       *keysyms; 
+
+int selected_workspace = 0;
 
 void add_client(xcb_window_t child);
 void arrange_clients();
@@ -56,6 +60,8 @@ void handle_map_request(xcb_generic_event_t *event);
 void setup();
 void event_loop();
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);
+
+std::vector<workspace> workspaces;
 
 xcb_atom_t get_atom(const char *name) {
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(
@@ -158,34 +164,35 @@ xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
 }
 
 void swap_client() {
-    if (clients.size() >= 2) {
-        std::swap(clients[0], clients[1]);
+    if (workspaces[selected_workspace].clients.size() >= 2) {
+        std::swap(workspaces[selected_workspace].clients[selected_workspace], workspaces[selected_workspace].clients[1]);
     }
 }
 
 void add_client(xcb_window_t child) {
     client c = {child, false};
-    clients.insert(clients.begin(), c);
+    workspaces[selected_workspace].clients.insert(workspaces[selected_workspace].clients.begin(), c);
 }
 
-void pin_client(xcb_window_t child) {
-    client c = clients[child];
-    c.fixed = !c.fixed;
-    clients[child] = c;
-
-    for (client c : clients) {
-        std::cout << c.fixed << std::endl;
-    }
-}
+// void pin_client(xcb_window_t child) {
+//     client c = clients[child];
+//     c.fixed = !c.fixed;
+//     clients[child] = c;
+//
+//     for (client c : clients) {
+//         std::cout << c.fixed << std::endl;
+//     }
+// }
 
 void remove_client(xcb_window_t window) {
+    //TODO: treat remove for workspace
     std::cout << "Removendo janela " << window << std::endl;
-    clients.erase(
-        std::remove_if(clients.begin(), clients.end(),
+    workspaces[0].clients.erase(
+        std::remove_if(workspaces[0].clients.begin(), workspaces[0].clients.end(),
             [window](const client& client) {
                 return client.child == window;
             }),
-        clients.end()
+        workspaces[0].clients.end()
     );
 }
 
@@ -262,18 +269,19 @@ void arrange_clients() {
     uint32_t aw  = screen->width_in_pixels - (2*BORDER_GAP);
     uint32_t ah = screen->height_in_pixels - (2*BORDER_GAP); 
         
-    uint32_t child_width = std::round(static_cast<double>(aw) / clients.size());
+    uint32_t child_width = std::round(static_cast<double>(aw) / workspaces[selected_workspace].clients.size());
     uint32_t child_height = ah;
 
     uint32_t x = BORDER_GAP;
     uint32_t y = BORDER_GAP;
 
     int index = 0;
-    for (client c : clients) {
+    std::cout << "workspace de dentro1 " << selected_workspace << std::endl;
+    for (client c : workspaces[selected_workspace].clients) {
         if(index == 3)
             break; 
 
-        std::cout << c.fixed << std::endl;
+        std::cout << "workspace de dentro2 " << selected_workspace << std::endl;
         uint32_t *rect= new uint32_t[4]{x, y, child_width, child_height};
         xcb_configure_window(
             connection,
@@ -284,6 +292,11 @@ void arrange_clients() {
         x += child_width;
         index++;
     }
+
+    for (client &c : workspaces[selected_workspace].clients) {
+        xcb_map_window(connection, c.child);
+    }
+
     xcb_flush(connection);
 }
 
@@ -392,6 +405,8 @@ void setup() {
     //     XCB_MOD_MASK_ANY // Qualquer modificador (Ctrl, Alt, etc)
     // );
     
+    workspaces = {{}};
+    
     xcb_change_window_attributes(connection, root, XCB_CW_EVENT_MASK, masks);
     xcb_flush(connection);
 }
@@ -450,6 +465,28 @@ void event_loop() {
                     arrange_clients();
                     std::cout << "Ctrl + r foi pressionado!" << std::endl;
                 }
+
+                if ((ctrl_pressed && keysym == XK_Left) || (ctrl_pressed && keysym == XK_Right)) { 
+
+                    // std::cout << "Ctrl + Left ou Ctrl + Right foi pressionado, mudando area de trabalho!" << std::endl;
+                    
+                    for (client &c : workspaces[selected_workspace].clients) {
+                        xcb_unmap_window(connection, c.child);
+                    }
+
+                    if(keysym == XK_Left) {
+                        if(selected_workspace > 0)
+                            selected_workspace--;
+                    } else if(keysym == XK_Right) {
+                        if(selected_workspace < workspaces.size()) {
+                            workspaces.push_back({{}});
+                            selected_workspace++;
+                        }
+                    }
+                    std::cout << "Workspace selecionado: " << selected_workspace << std::endl;
+                    arrange_clients();
+                }
+
                 break;
             }
             default:
