@@ -204,28 +204,32 @@ void draw() {
     // uint32_t x = BORDER_GAP;
     // uint32_t y = BORDER_GAP;
     
-    uint32_t x = 0;
-    uint32_t y = 0;
-
     int index = 0;
-    for (client c : workspaces[current_workspace].clients) {
-        if(index == 3)
-            break; 
-
-        uint32_t *rect_frame = new uint32_t[4]{x, 0, 100, 100};
-        xcb_configure_window(
-            connection,
-            c.frame,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            rect_frame
-        );
-        x += 100;
-        index++;
-    }
+    // for (client c : workspaces[current_workspace].clients) {
+    //     if(index == 3)
+    //         break; 
+    //
+    //     uint32_t *rect_frame = new uint32_t[4]{(uint32_t)c.x, (uint32_t)c.y, (uint32_t)c.width, (uint32_t)c.height};
+    //     xcb_configure_window(
+    //         connection,
+    //         c.frame,
+    //         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+    //         rect_frame
+    //     );
+    //
+    //     uint32_t *rect_child = new uint32_t[4]{(uint32_t)c.x, (uint32_t)c.y, (uint32_t)c.width -  CLIENT_BORDER_SIZE*2, (uint32_t)c.height -  CLIENT_BORDER_SIZE*2 };
+    //     xcb_configure_window(
+    //         connection,
+    //         c.child,
+    //         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+    //         rect_frame
+    //     );
+    //     index++;
+    // }
 
     for (client &c : workspaces[current_workspace].clients) {
         xcb_map_window(connection, c.frame);
-        // xcb_unmap_window(connection, c.child); 
+        // xcb_map_window(connection, c.child); 
     }
 
     xcb_flush(connection);
@@ -255,32 +259,6 @@ void draw() {
 //     //     return;
 //     // }
 //     
-//     xcb_window_t frame = xcb_generate_id(connection);
-//     std::cout << "Frame ID: " << frame << std::endl;
-//     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-//     uint32_t frame_vals[2] = {
-//         screen->white_pixel,
-//         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-//         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
-//     };
-//
-//     int frame_x = 0;
-//     int frame_y = 0;
-//     int frame_width = screen->width_in_pixels;
-//     int frame_height = screen->height_in_pixels;
-//
-//     xcb_create_window(connection,
-//       screen->root_depth,
-//       frame, root,
-//       frame_x, frame_y, frame_width, frame_height,
-//       BORDER_WIDTH,
-//       XCB_WINDOW_CLASS_INPUT_OUTPUT,
-//       screen->root_visual,
-//       mask, frame_vals
-//     );
-//
-//     xcb_reparent_window(connection, map_request->window, frame, BORDER_WIDTH, BORDER_WIDTH);
-//
 //     add_client(frame, map_request->window);
 //
 //     xcb_map_window(connection, map_request->window);
@@ -308,15 +286,6 @@ void draw() {
 //     xcb_flush(connection);
 // }
 
-// void start_resize(client *c, int root_x, int root_y, ResizeEdge edge) {
-//     is_resizing = true;
-//     current_resizing_client = c;
-//     initial_root_x = root_x;
-//     initial_root_y = root_y;
-//     initial_width = c->width;
-//     initial_height = c->height;
-//     resize_edge = edge;
-// }
 //
 // void start_move(client *c, int root_x, int root_y) {
 //     is_resizing = false;
@@ -342,61 +311,10 @@ void draw() {
 //     xcb_flush(connection);
 // }
 
-// void resize_client(int root_x, int root_y) {
-//     if (!is_resizing || !current_resizing_client) return;
-//
-//     int dx = (root_x+BORDER_GAP) - initial_root_x;
-//     int dy = (root_y+BORDER_GAP) - initial_root_y;
-//
-//     int new_width = initial_width;
-//     int new_height = initial_height;
-//
-//     if (resize_edge == RIGHT || resize_edge == BOTTOM_RIGHT) {
-//         new_width = std::max(MIN_WIDTH, initial_width + dx);
-//     }
-//
-//     if (resize_edge == BOTTOM || resize_edge == BOTTOM_RIGHT) {
-//         new_height = std::max(MIN_HEIGHT, initial_height + dy);
-//     }
-//
-//     current_resizing_client->width = new_width;
-//     current_resizing_client->height = new_height;
-//
-//     uint32_t values[] = {current_resizing_client->x, current_resizing_client->y, new_width, new_height};
-//     xcb_configure_window(connection, current_resizing_client->frame,
-//                          XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-//                          values);
-//     xcb_flush(connection);
-// }
-//
 // void stop_resize() {
 //     is_resizing = false;
 //     current_resizing_client = nullptr;
 //     resize_edge = NONE;
-// }
-
-// void handle_button_press(xcb_generic_event_t *event) {
-//     xcb_button_press_event_t *button_event = (xcb_button_press_event_t *)event;
-//     for (client &c : workspaces[current_workspace].clients) {
-//         if (button_event->event == c.frame) {
-//             int frame_width = c.width;
-//             int frame_height = c.height;
-//             int root_x = button_event->root_x;
-//             int root_y = button_event->root_y;
-//
-//             if (root_x >= c.x + frame_width - 10 && root_y >= c.y + frame_height - 10) {
-//                 start_resize(&c, root_x, root_y, BOTTOM_RIGHT);
-//             } else if (root_x >= c.x + frame_width - 10) {
-//                 start_resize(&c, root_x, root_y, RIGHT);
-//             } else if (root_y >= c.y + frame_height - 10) {
-//                 start_resize(&c, root_x, root_y, BOTTOM);
-//             }
-//             // else{
-//             //     start_move(&c, root_x, root_y);
-//             // }
-//             break;
-//         }
-//     }
 // }
 
 // void handle_motion_notify(xcb_generic_event_t *event) {
@@ -441,29 +359,24 @@ void event_loop() {
         uint8_t response_type = event->response_type & ~0x80;
         switch (response_type) {
             case XCB_MAP_REQUEST:{
-                // add_client(event);
-                xcb_map_request_event_t *map_request_event = (xcb_map_request_event_t *)event;
-                std::cout << "Adicionando janela " << map_request_event->window << std::endl;
-                add_client(map_request_event->window);
+                add_client(event);
                 break;
             }
             case XCB_DESTROY_NOTIFY:
-                // handle_destroy_notify(event);
-                // remove_client(((xcb_destroy_notify_event_t *)event)->window);
-                // arrange_clients();
+                // remove_client(event);
                 break;
-            // case XCB_BUTTON_PRESS: {
-            //     handle_button_press(event);
-            //     break;
-            // }
-            // case XCB_MOTION_NOTIFY: {
-            //     handle_motion_notify(event);
-            //     break;
-            // }
-            // case XCB_BUTTON_RELEASE: {
-            //     handle_button_release(event);
-            //     break;
-            // }
+            case XCB_BUTTON_PRESS: {
+                client_button_press(event);
+                break;
+            }
+            case XCB_MOTION_NOTIFY: {
+                client_motion_handle(event);
+                break;
+            }
+            case XCB_BUTTON_RELEASE: {
+                client_button_release(event);
+                break;
+            }
             // case XCB_KEY_PRESS: {
             //     // xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
             //     //

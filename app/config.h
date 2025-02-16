@@ -13,10 +13,13 @@
 #define WORKSPACE_GAP_SIZE 20
 #define WORKSPACE_BAR_HEIGHT 30
 
-#define CLINTE_MIN_WIDTH 200
+#define CLIENT_MIN_WIDTH 200
 #define CLIENT_MIN_HEIGHT 200
 
-#define CLIENT_BORDER_WIDTH 200
+#define CLIENT_BORDER_SIZE 10
+
+#define CLIENT_MIN_HEIGHT 200
+#define CLIENT_MAX_HEIGHT 200
 
 extern xcb_window_t             root;
 extern xcb_screen_t            *screen;
