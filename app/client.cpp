@@ -75,6 +75,8 @@ void client_button_press(xcb_generic_event_t *event) {
             }
             if(be->detail == 3){
                 std::cout << "Moving: " << c.frame << std::endl;
+                start_x = be->event_x;
+                start_y = be->event_y;
                 is_moving = true;
                 current_resizing_client = &c;
             }
@@ -89,8 +91,11 @@ void client_motion_handle(xcb_generic_event_t *event) {
     if(is_moving){
         if (!is_moving || !current_resizing_client) return;
 
-        uint32_t new_x = current_resizing_client->x + (motion->root_x - start_x);
-        uint32_t new_y = current_resizing_client->y + (motion->root_y - start_y);
+        xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
+            connection, xcb_get_geometry(connection, motion->event), NULL);
+
+        uint32_t new_x = (motion->root_x - start_y);
+        uint32_t new_y = (motion->root_y - start_x);
     
         uint32_t values[] = {new_x, new_y};
         xcb_configure_window(connection, current_resizing_client->frame,
@@ -137,8 +142,6 @@ void client_button_release(xcb_generic_event_t *event) {
 
     if(is_moving){
         is_moving = false;
-        current_resizing_client->x = geometry->x;
-        current_resizing_client->y = geometry->y;
         current_resizing_client = nullptr;
     }
 }
