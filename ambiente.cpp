@@ -45,6 +45,7 @@ xcb_window_t             root;
 xcb_screen_t            *screen;
 xcb_connection_t        *connection;
 xcb_key_symbols_t       *keysyms; 
+root_config              config;
 
 xcb_atom_t get_atom(const char *name) {
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(
@@ -339,6 +340,11 @@ void setup() {
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
     root   = screen->root;
+
+    xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
+        connection, xcb_get_geometry(connection, root), NULL);
+
+    config = {geometry->width, geometry->height, 0,0, };
 
     uint32_t masks[] = {
         XCB_EVENT_MASK_KEY_PRESS  |

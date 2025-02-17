@@ -24,4 +24,6 @@ void client_button_press(xcb_generic_event_t *event);
 void client_button_release(xcb_generic_event_t *event);
 void client_motion_handle(xcb_generic_event_t *event);
 
+void client_find_grid_pos(int32_t *x, int32_t *y);
+
 #endif

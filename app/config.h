@@ -21,10 +21,22 @@
 #define CLIENT_MIN_HEIGHT 200
 #define CLIENT_MAX_HEIGHT 200
 
+#define CLIENT_POSITION_SPACING 40
+
+#define USE_GRID true
+
+typedef struct root_config {
+    int width;
+    int height;
+    int x;
+    int y;
+} root_config;
+
 extern xcb_window_t             root;
 extern xcb_screen_t            *screen;
 extern xcb_connection_t        *connection;
 extern xcb_key_symbols_t       *keysyms; 
+extern root_config              config; 
 
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);

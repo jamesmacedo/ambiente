@@ -2,6 +2,7 @@
 #include <xcb/xcb.h>
 #include <algorithm>
 #include "client.h"
+#include "math.h"
 #include "./workspace.h"
 #include "./config.h"
 
@@ -13,6 +14,11 @@ void swap_client() {
     if (workspaces[current_workspace].clients.size() >= 2) {
         std::swap(workspaces[current_workspace].clients[current_workspace], workspaces[current_workspace].clients[1]);
     }
+}
+
+void client_find_grid_pos(int32_t *x, int32_t *y) {
+    *x = floor(*x/CLIENT_POSITION_SPACING) * CLIENT_POSITION_SPACING;
+    *y = floor(*y/CLIENT_POSITION_SPACING) * CLIENT_POSITION_SPACING;
 }
 
 void add_client(xcb_generic_event_t *event) {
@@ -94,27 +100,50 @@ void client_motion_handle(xcb_generic_event_t *event) {
         xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
             connection, xcb_get_geometry(connection, motion->event), NULL);
 
-        uint32_t new_x = (motion->root_x - start_y);
-        uint32_t new_y = (motion->root_y - start_x);
-    
-        uint32_t values[] = {new_x, new_y};
-        xcb_configure_window(connection, current_resizing_client->frame,
-                             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                             values);
+        if (!geometry) return; // Proteção contra ponteiro nulo
 
+        std::cout << "X: " << geometry->x << " Y: " << geometry->y << std::endl;
+
+        int32_t new_x = (int32_t)geometry->x + (int32_t)motion->event_x - (int32_t)start_x;
+        int32_t new_y = (int32_t)geometry->y + (int32_t)motion->event_y - (int32_t)start_y;
+
+        uint32_t janela_largura = geometry->width;
+        uint32_t janela_altura = geometry->height;
+
+        if (new_x < config.x) {
+            new_x = config.x;
+        } else if (new_x + janela_largura > config.x + config.width) {
+            new_x = config.x + config.width - janela_largura;
+        }
+
+        if (new_y < config.y || new_x < 0) {
+            new_y = config.y;
+        } else if (new_y + janela_altura > config.y + config.height) {
+            new_y = config.y + config.height - janela_altura;
+        }
+    
+        if(USE_GRID)
+            client_find_grid_pos(&new_x, &new_y);
+
+        int32_t values[] = {new_x, new_y};
+        xcb_configure_window(connection, current_resizing_client->frame,
+                             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
     }
 
     if (is_resizing) {
 
         if (!is_resizing || !current_resizing_client) return;
 
-        uint32_t new_width = current_resizing_client->width + (motion->root_x - current_resizing_client->x);
-        uint32_t new_height = current_resizing_client->height + (motion->root_y - current_resizing_client->y);
+        int32_t new_width = (motion->root_x - current_resizing_client->x);
+        int32_t new_height = (motion->root_y - current_resizing_client->y);
+
+        if(USE_GRID)
+            client_find_grid_pos(&new_width, &new_height);
 
         if (new_width < CLIENT_MIN_WIDTH) new_width = CLIENT_MIN_WIDTH;
         if (new_height < CLIENT_MIN_HEIGHT) new_height = CLIENT_MIN_HEIGHT;
 
-        uint32_t values[] = {new_width, new_height};
+        int32_t values[] = {new_width, new_height};
         xcb_configure_window(connection, current_resizing_client->frame,
                              XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                              values);
@@ -142,6 +171,8 @@ void client_button_release(xcb_generic_event_t *event) {
 
     if(is_moving){
         is_moving = false;
+        current_resizing_client->x = geometry->x;
+        current_resizing_client->y = geometry->y;
         current_resizing_client = nullptr;
     }
 }
