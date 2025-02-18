@@ -189,48 +189,10 @@ xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
 //     cairo_fill(cr);
 // }
 
-void draw() {
-    // uint32_t usable_x = 0 + g_dock_struts.left;
-    // uint32_t usable_y = 0 + g_dock_struts.top + BORDER_GAP;
-    // uint32_t usable_width  = screen->width_in_pixels  - (g_dock_struts.left + g_dock_struts.right);
-    // uint32_t usable_height = screen->height_in_pixels - (g_dock_struts.top + g_dock_struts.bottom) - BORDER_GAP;
-
-    // uint32_t aw  = screen->width_in_pixels - (2*BORDER_GAP) - BORDER_WIDTH;
-    // uint32_t ah = screen->height_in_pixels - (2*BORDER_GAP) - BORDER_WIDTH; 
-    //     
-    // uint32_t child_width = std::round(static_cast<double>(aw) / workspaces[current_workspace].clients.size());
-    // uint32_t child_width = std::round(static_cast<double>(aw));
-    // uint32_t child_height = ah;
-    //
-    // uint32_t x = BORDER_GAP;
-    // uint32_t y = BORDER_GAP;
-    
-    int index = 0;
-    // for (client c : workspaces[current_workspace].clients) {
-    //     if(index == 3)
-    //         break; 
-    //
-    //     uint32_t *rect_frame = new uint32_t[4]{(uint32_t)c.x, (uint32_t)c.y, (uint32_t)c.width, (uint32_t)c.height};
-    //     xcb_configure_window(
-    //         connection,
-    //         c.frame,
-    //         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-    //         rect_frame
-    //     );
-    //
-    //     uint32_t *rect_child = new uint32_t[4]{(uint32_t)c.x, (uint32_t)c.y, (uint32_t)c.width -  CLIENT_BORDER_SIZE*2, (uint32_t)c.height -  CLIENT_BORDER_SIZE*2 };
-    //     xcb_configure_window(
-    //         connection,
-    //         c.child,
-    //         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-    //         rect_frame
-    //     );
-    //     index++;
-    // }
-
+void draw() {    
     for (client &c : workspaces[current_workspace].clients) {
         xcb_map_window(connection, c.frame);
-        // xcb_map_window(connection, c.child); 
+        xcb_map_window(connection, c.child); 
     }
 
     xcb_flush(connection);
@@ -381,6 +343,25 @@ void event_loop() {
             }
             case XCB_BUTTON_RELEASE: {
                 client_button_release(event);
+                break;
+            }
+            case XCB_CONFIGURE_NOTIFY: {
+                auto configure = reinterpret_cast<xcb_configure_notify_event_t*>(event);
+                client* client = find_client(configure->window);
+                if (client != nullptr) {
+                    xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
+                        connection, xcb_get_geometry(connection, configure->window), NULL);
+
+                    uint32_t config_values[] = { (uint32_t )geometry->x + CLIENT_BORDER_SIZE, (uint32_t)geometry->y + CLIENT_BORDER_SIZE, (uint32_t)geometry->width, (uint32_t)geometry->height, XCB_STACK_MODE_ABOVE};
+                    
+                    xcb_configure_window(
+                        connection,
+                        client->child,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
+                        config_values
+                    );
+                    xcb_flush(connection);
+                }
                 break;
             }
             // case XCB_KEY_PRESS: {

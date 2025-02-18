@@ -21,46 +21,54 @@ void client_find_grid_pos(int32_t *x, int32_t *y) {
     *y = floor(*y/CLIENT_POSITION_SPACING) * CLIENT_POSITION_SPACING;
 }
 
+client* find_client(xcb_window_t window) {
+    for (auto it = workspaces[current_workspace].clients.begin(); it != workspaces[current_workspace].clients.end(); ++it) {
+        if(it->frame == window){
+            return &(*it);
+        }   
+    } 
+    return nullptr;
+}
+
 void add_client(xcb_generic_event_t *event) {
 
     xcb_map_request_event_t *map_request_event = (xcb_map_request_event_t *)event;
     xcb_window_t client = map_request_event->window;
 
-    std::cout << "Mapeando: " << client << std::endl;
-
     xcb_window_t frame = xcb_generate_id(connection);
-    std::cout << "Frame ID: " << frame << std::endl;
-    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    uint32_t frame_vals[2] = {
-        screen->white_pixel,
+    uint32_t mask = XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    uint32_t frame_vals[3] = {
+        0xff0000,
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
     };
-
-    // xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
-    //     connection, xcb_get_geometry(connection, client), NULL);
-
-    // int width = geometry->width;
-    // int height = geometry->height;
+    
     int width = 500; 
     int height = 500;
 
-    int x = 50;
-    int y = 50;
+    int x = CLIENT_POSITION_SPACING;
+    int y = CLIENT_POSITION_SPACING;
     
-    std::cout << "Tamanho: " << width << "x" << height << std::endl;
-
+    xcb_reparent_window(connection, client, frame, x, y);
+    
     xcb_create_window(connection,
       screen->root_depth,
       frame, root,
       x, y, width, height,
-      CLIENT_BORDER_SIZE ,
+      CLIENT_BORDER_SIZE,
       XCB_WINDOW_CLASS_INPUT_OUTPUT,
       screen->root_visual,
       mask, frame_vals
     );
 
-    // xcb_reparent_window(connection, client, frame, x, y);
+    uint32_t config_values[] = { (uint32_t )x + CLIENT_BORDER_SIZE, (uint32_t)y + CLIENT_BORDER_SIZE, (uint32_t)width, (uint32_t)height, XCB_STACK_MODE_ABOVE};
+                    
+    xcb_configure_window(
+        connection,
+        client,
+        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
+        config_values
+    );
 
     struct client c = {frame, client, width, height, x, y, false};
     workspaces[current_workspace].clients.insert(workspaces[current_workspace].clients.begin(), c); 
@@ -77,7 +85,6 @@ void client_button_press(xcb_generic_event_t *event) {
                 start_y = be->root_y;
 
                 current_resizing_client = &c;
-
             }
             if(be->detail == 3){
                 std::cout << "Moving: " << c.frame << std::endl;
