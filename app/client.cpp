@@ -1,5 +1,6 @@
 #include <iostream>
 #include <xcb/xcb.h>
+#include <xcb/shape.h>
 #include <algorithm>
 #include "client.h"
 #include "math.h"
@@ -30,27 +31,15 @@ client* find_client(xcb_window_t window) {
     return nullptr;
 }
 
-void add_client(xcb_generic_event_t *event) {
-
-    xcb_map_request_event_t *map_request_event = (xcb_map_request_event_t *)event;
-    xcb_window_t client = map_request_event->window;
-
+xcb_window_t create_frame(int16_t width, int16_t height, uint32_t x, uint32_t y){
     xcb_window_t frame = xcb_generate_id(connection);
-    uint32_t mask = XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     uint32_t frame_vals[3] = {
-        0xff0000,
+        screen->white_pixel,
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
     };
-    
-    int width = 500; 
-    int height = 500;
 
-    int x = CLIENT_POSITION_SPACING;
-    int y = CLIENT_POSITION_SPACING;
-    
-    xcb_reparent_window(connection, client, frame, x, y);
-    
     xcb_create_window(connection,
       screen->root_depth,
       frame, root,
@@ -61,16 +50,69 @@ void add_client(xcb_generic_event_t *event) {
       mask, frame_vals
     );
 
+    return frame;
+}
+
+xcb_window_t create_frame_bar(xcb_window_t parent, int width, int height, int x, int y){
+    xcb_window_t toolbar = xcb_generate_id(connection);
+    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    uint32_t frame_vals[3] = {
+        0xff0000,
+        XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
+        XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
+    };
+
+    xcb_reparent_window(connection, parent, toolbar, x, y);
+    
+    xcb_create_window(connection,
+      screen->root_depth,
+      toolbar, root,
+      x, y, width, height,
+      0,
+      XCB_WINDOW_CLASS_INPUT_OUTPUT,
+      screen->root_visual,
+      mask, frame_vals
+    );
+    
     uint32_t config_values[] = { (uint32_t )x + CLIENT_BORDER_SIZE, (uint32_t)y + CLIENT_BORDER_SIZE, (uint32_t)width, (uint32_t)height, XCB_STACK_MODE_ABOVE};
                     
     xcb_configure_window(
         connection,
-        client,
+        toolbar,
         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
         config_values
     );
 
-    struct client c = {frame, client, width, height, x, y, false};
+    return toolbar;
+}
+
+void add_client(xcb_generic_event_t *event) {
+
+    xcb_map_request_event_t *map_request_event = (xcb_map_request_event_t *)event;
+    xcb_window_t client = map_request_event->window;
+
+    int width = 500; 
+    int height = 500;
+
+    int x = CLIENT_POSITION_SPACING;
+    int y = CLIENT_POSITION_SPACING;   
+
+    xcb_window_t frame = create_frame(width, height, x, y);
+
+    xcb_reparent_window(connection, client, frame, x, y);
+
+    xcb_window_t toolbar = create_frame_bar(frame, width-FRAME_PADDING*2, FRAME_BAR_HEIGHT, FRAME_PADDING, y);
+
+    uint32_t config_values[] = { (uint32_t)x, (uint32_t)y, (uint32_t)width, (uint32_t)height, XCB_STACK_MODE_ABOVE};
+                    
+    xcb_configure_window(
+        connection,
+        frame,
+        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
+        config_values
+    );
+
+    struct client c = {frame, toolbar, client, width, height, x, y, false};
     workspaces[current_workspace].clients.insert(workspaces[current_workspace].clients.begin(), c); 
 }
 

@@ -192,7 +192,8 @@ xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
 void draw() {    
     for (client &c : workspaces[current_workspace].clients) {
         xcb_map_window(connection, c.frame);
-        xcb_map_window(connection, c.child); 
+        // xcb_map_window(connection, c.toolbar);
+        xcb_map_window(connection, c.child);
     }
 
     xcb_flush(connection);
@@ -352,70 +353,65 @@ void event_loop() {
                     xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
                         connection, xcb_get_geometry(connection, configure->window), NULL);
 
-                    uint32_t config_values[] = { (uint32_t )geometry->x + CLIENT_BORDER_SIZE, (uint32_t)geometry->y + CLIENT_BORDER_SIZE, (uint32_t)geometry->width, (uint32_t)geometry->height, XCB_STACK_MODE_ABOVE};
-                    
+                    uint32_t config_tool[] = { (uint32_t )FRAME_PADDING, (uint32_t)geometry->y, (uint32_t)geometry->width - FRAME_PADDING*2, XCB_STACK_MODE_ABOVE};
+
+                    xcb_configure_window(
+                        connection,
+                        client->toolbar,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_STACK_MODE,
+                        config_tool
+                    );
+                    //
+                    uint32_t client_values[] = { FRAME_PADDING, FRAME_BAR_HEIGHT, (uint32_t)geometry->width - FRAME_PADDING * 2, (uint32_t)geometry->height - FRAME_BAR_HEIGHT, XCB_STACK_MODE_ABOVE};
                     xcb_configure_window(
                         connection,
                         client->child,
-                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
-                        config_values
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
+                        client_values
                     );
-                    xcb_flush(connection);
+                    // xcb_flush(connection);
                 }
                 break;
             }
-            // case XCB_KEY_PRESS: {
-            //     // xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            //     //
-            //     // std::cout << "teste" << std::endl;
-            //     //
-            //     // if (key_event->detail == keycode && (key_event->state & modifiers) == modifiers) {
-            //     //     system("kitty &");
-            //     // }
-            //
-            //     xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            //
-            //
-            //     std::cout << "Tecla pressionada: " << key_event->detail << std::endl;
-            //     std::cout << "Event state: " << key_event->state << std::endl;
-            //
-            //     // Verificar se a tecla Control está pressionada
-            //     bool ctrl_pressed = key_event->state & XCB_MOD_MASK_CONTROL;
-            //
-            //     std::cout << "Is pressed: " << ctrl_pressed << std::endl;
-            //
-            //     // Obter o keysym da tecla pressionada
-            //     xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, key_event->detail, 0);
-            //
-            //     if (ctrl_pressed && keysym == XK_r) {
-            //         // swap_client();
-            //         // arrange_clients();
-            //         std::cout << "Ctrl + r foi pressionado!" << std::endl;
-            //     }
-            //
-            //     if ((ctrl_pressed && keysym == XK_Left) || (ctrl_pressed && keysym == XK_Right)) { 
-            //
-            //         // std::cout << "Ctrl + Left ou Ctrl + Right foi pressionado, mudando area de trabalho!" << std::endl;
-            //         
-            //         for (client &c : workspaces[current_workspace].clients) {
-            //             xcb_unmap_window(connection, c.child);
-            //         }
-            //
-            //         if(keysym == XK_Left) {
-            //             if(current_workspace > 0)
-            //                 current_workspace--;
-            //         } else if(keysym == XK_Right) {
-            //             if(current_workspace < workspaces.size()) {
-            //                 workspaces.push_back({{}});
-            //                 current_workspace++;
-            //             }
-            //         }
-            //         std::cout << "Workspace selecionado: " << current_workspace << std::endl;
-            //         arrange_clients();
-            //     }
-            //
-            //     break;
-            // }
+            case XCB_KEY_PRESS: {
+
+                xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
+
+                std::cout << "Tecla pressionada: " << key_event->detail << std::endl;
+                std::cout << "Event state: " << key_event->state << std::endl;
+
+                bool ctrl_pressed = key_event->state & XCB_MOD_MASK_CONTROL;
+
+                std::cout << "Is pressed: " << ctrl_pressed << std::endl;
+
+                xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, key_event->detail, 0);
+
+                if (ctrl_pressed && keysym == XK_r) {
+                    system("kitty &");
+                }
+
+                if ((ctrl_pressed && keysym == XK_Left) || (ctrl_pressed && keysym == XK_Right)) { 
+
+                    // std::cout << "Ctrl + Left ou Ctrl + Right foi pressionado, mudando area de trabalho!" << std::endl;
+                    
+                    for (client &c : workspaces[current_workspace].clients) {
+                        xcb_unmap_window(connection, c.child);
+                    }
+
+                    if(keysym == XK_Left) {
+                        if(current_workspace > 0)
+                            current_workspace--;
+                    } else if(keysym == XK_Right) {
+                        if(current_workspace < workspaces.size()) {
+                            workspaces.push_back({{}});
+                            current_workspace++;
+                        }
+                    }
+                    std::cout << "Workspace selecionado: " << current_workspace << std::endl;
+                }
+
+                break;
+            }
             default:
                 break;
         }

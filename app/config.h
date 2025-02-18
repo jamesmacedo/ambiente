@@ -16,14 +16,18 @@
 #define CLIENT_MIN_WIDTH 200
 #define CLIENT_MIN_HEIGHT 200
 
-#define CLIENT_BORDER_SIZE 10
+#define CLIENT_BORDER_SIZE 0 
 
 #define CLIENT_MIN_HEIGHT 200
 #define CLIENT_MAX_HEIGHT 200
 
 #define CLIENT_POSITION_SPACING 40
+#define FRAME_BAR_HEIGHT 20
+#define FRAME_PADDING 3
 
 #define USE_GRID true
+
+#define BORDER_RADIUS 40
 
 typedef struct root_config {
     int width;

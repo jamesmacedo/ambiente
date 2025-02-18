@@ -5,6 +5,7 @@
 
 typedef struct client {
     xcb_window_t frame;
+    xcb_window_t toolbar;
     xcb_window_t child;
     int width;
     int height;
