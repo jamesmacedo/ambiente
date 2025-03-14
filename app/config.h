@@ -16,18 +16,19 @@
 #define CLIENT_MIN_WIDTH 200
 #define CLIENT_MIN_HEIGHT 200
 
-#define CLIENT_BORDER_SIZE 0 
+#define CLIENT_BORDER_SIZE 4 
 
 #define CLIENT_MIN_HEIGHT 200
 #define CLIENT_MAX_HEIGHT 200
 
 #define CLIENT_POSITION_SPACING 40
-#define FRAME_BAR_HEIGHT 20
-#define FRAME_PADDING 3
+#define FRAME_BAR_HEIGHT 25
 
 #define USE_GRID true
 
 #define BORDER_RADIUS 40
+
+#import "./ui/utils.h"
 
 typedef struct root_config {
     int width;
@@ -37,10 +38,12 @@ typedef struct root_config {
 } root_config;
 
 extern xcb_window_t             root;
+extern xcb_render_pictformat_t  root_format; 
 extern xcb_screen_t            *screen;
 extern xcb_connection_t        *connection;
 extern xcb_key_symbols_t       *keysyms; 
 extern root_config              config; 
+extern ambi_render_formats      formats; 
 
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);

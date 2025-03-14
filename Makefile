@@ -1,11 +1,11 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Iinclude -MMD -MP
-LDFLAGS = -lxcb -lxcb-ewmh -lxcb-keysyms -lxcb-shape -lcairo
+LDFLAGS = -lxcb -lxcb-ewmh -lxcb-keysyms -lxcb-shape -lxcb-damage -lxcb-xfixes -lxcb-composite -lxcb-render -lxcb-render-util -lcairo
 
 SRC_DIR = app
 BUILD_DIR = build
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS = $(wildcard $(SRC_DIR)/**/*.cpp) $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 TARGET = $(BUILD_DIR)/ambiente
 

@@ -2,22 +2,35 @@
 #define CLIENT_H
 
 #include <xcb/xcb.h>
+#include <xcb/render.h>
+#include <xcb/damage.h>
+
+typedef struct entity {
+    xcb_window_t id;
+    xcb_pixmap_t pixmap;
+    xcb_render_picture_t picture;
+} entity;
 
 typedef struct client {
     xcb_window_t frame;
     xcb_window_t toolbar;
     xcb_window_t child;
-    int width;
-    int height;
-    int x;
-    int y;
-    int fixed;
-    int resizing; 
+    xcb_rectangle_t shape;
+    xcb_damage_damage_t damage;
+    entity window; 
+    entity frame_v; 
+    entity mask;
+    entity bar; 
+
+    void draw(xcb_render_picture_t buffer);
+
 } client;
 
+extern client *active_client;             
 extern client *current_resizing_client;
 extern bool is_resizing, is_moving;
 extern int start_x, start_y;
+
 
 void remove_client(xcb_generic_event_t *event);
 void add_client(xcb_generic_event_t *event);
