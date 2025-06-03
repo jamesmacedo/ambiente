@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Iinclude -MMD -MP
-LDFLAGS = -lxcb -lxcb-ewmh -lxcb-keysyms -lcairo
+LDFLAGS = -lxcb -lxcb-ewmh -lxcb-keysyms -lcairo -lxcb-damage -lxcb-xfixes -lxcb-composite -lxcb-render -lxcb-render-util -lcairo
 
 SRC_DIR = app
 BUILD_DIR = build

@@ -3,15 +3,29 @@
 
 #include <xcb/xcb.h>
 
+#include <xcb/render.h>
+#include <xcb/damage.h>
+
+typedef struct entity {
+    xcb_window_t id;
+    xcb_pixmap_t pixmap;
+    xcb_render_picture_t picture;
+} entity;
+
 typedef struct client {
+    entity window;
+    xcb_rectangle_t shape;
+    
     xcb_window_t frame;
-    xcb_window_t child;
+    xcb_damage_damage_t damage;
+
     int width;
     int height;
     int x;
     int y;
     int fixed;
     int resizing; 
+    void draw(xcb_render_picture_t buffer);
 } client;
 
 extern client *current_resizing_client;
