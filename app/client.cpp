@@ -9,6 +9,12 @@
 #include <xcb/composite.h>
 #include <xcb/xcb_renderutil.h>
 
+#include <xcb/xcb_ewmh.h>
+#include <string>
+
+#include <cairo/cairo.h>
+#include <cairo/cairo-xcb.h>
+
 #include "client.h"
 #include "./workspace.h"
 #include "./config.h"
@@ -18,6 +24,25 @@ int start_x, start_y = 0;
 int initial_width, initial_height = 0;
 int initial_x, initial_y = 0;
 bool is_resizing, is_moving = false;
+
+xcb_visualtype_t* find_argb_visual(xcb_visualid_t *visual_id, uint8_t *depth) {
+    xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
+    
+    for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
+        if (depth_iter.data->depth == 32) {
+            xcb_visualtype_iterator_t visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+            if (visual_iter.rem) {
+                *visual_id = visual_iter.data->visual_id;
+                *depth = depth_iter.data->depth;
+                return visual_iter.data;
+            }
+        }
+    }
+    
+    *visual_id = screen->root_visual;
+    *depth = screen->root_depth;
+    return nullptr;
+}
 
 void swap_client() {
     if (workspaces[current_workspace].clients.size() >= 2) {
@@ -32,14 +57,151 @@ void client_find_grid_pos(int32_t *x, int32_t *y) {
 
 client* find_client(xcb_window_t window) {
     for (auto it = workspaces[current_workspace].clients.begin(); it != workspaces[current_workspace].clients.end(); ++it) {
-        if(it->frame == window || it->window.id == window){
+        if(it->frame == window || it->window.id == window || it->titlebar.id == window){
             return &(*it);
         }   
     } 
     return nullptr;
 }
 
-std::pair<xcb_pixmap_t, xcb_render_picture_t> create_picture_from_window(xcb_window_t client, xcb_render_pictvisual_t *pict_format){
+void client::draw(xcb_render_picture_t buffer){    
+    xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER, this->window.picture, XCB_RENDER_PICTURE_NONE, buffer, 0,0,0,0,this->shape.x, this->shape.y,this->shape.width,this->shape.height);
+};
+
+std::string get_window_title(xcb_window_t window) {
+    xcb_ewmh_get_utf8_strings_reply_t title_reply;
+    
+    if (xcb_ewmh_get_wm_name_reply(ewmh, 
+            xcb_ewmh_get_wm_name(ewmh, window),
+            &title_reply, NULL)) {
+        std::string title(title_reply.strings, title_reply.strings_len);
+        xcb_ewmh_get_utf8_strings_reply_wipe(&title_reply);
+        return title;
+    }
+    
+    xcb_get_property_cookie_t cookie = xcb_get_property(
+        connection, 0, window,
+        XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
+        0, 256
+    );
+    
+    xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
+    if (reply && xcb_get_property_value_length(reply) > 0) {
+        char *title_str = (char*)xcb_get_property_value(reply);
+        int title_len = xcb_get_property_value_length(reply);
+        std::string title(title_str, title_len);
+        free(reply);
+        return title;
+    }
+    
+    if (reply) free(reply);
+    return "Sem Título";
+}
+
+void draw_titlebar(client *c) {
+    if (!c->titlebar.id) return;
+    
+    xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(connection, c->titlebar.id);
+    xcb_get_window_attributes_reply_t *attr_reply = xcb_get_window_attributes_reply(connection, attr_cookie, NULL);
+    
+    if (!attr_reply) return;
+    
+    xcb_visualtype_t *visual = nullptr;
+    xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
+    
+    for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
+        xcb_visualtype_iterator_t visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+        for (; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
+            if (visual_iter.data->visual_id == attr_reply->visual) {
+                visual = visual_iter.data;
+                break;
+            }
+        }
+        if (visual) break;
+    }
+    
+    if (!visual) {
+        free(attr_reply);
+        return;
+    }
+    
+    const int width = c->titlebar.width;
+    const int height = c->shape.height;
+
+    cairo_surface_t *surface = cairo_xcb_surface_create(
+        connection, c->titlebar.id, visual,
+        c->titlebar.width, height 
+    );
+    
+    cairo_t *cr = cairo_create(surface);
+    
+    // cairo_save(cr);
+    // cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    // cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
+    // cairo_rectangle(cr, 0, 0, c->titlebar.width, 30);
+    // cairo_fill(cr);
+    // cairo_restore(cr);
+    
+    // Voltar ao modo normal de composição
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+    const int radius = 20;
+
+    const int x = 0;
+    const int y = 0;
+    
+    cairo_set_source_rgba(cr, 0.0, 0.1, 0.1, 0.8); // Cinza escuro com 80% opacidade
+    // cairo_rectangle(cr, 0, 0, width, height);
+    cairo_move_to(cr, x, y + height);
+
+    cairo_line_to(cr, x, y + radius);
+
+    cairo_arc(cr, x + radius, y + radius, radius, M_PI, 3 * M_PI / 2);
+
+    cairo_line_to(cr, x + width - radius, y);
+
+    cairo_arc(cr, x + width - radius, y + radius, radius, 3 * M_PI / 2, 0);
+
+    cairo_line_to(cr, x + width, y + height);
+
+    cairo_line_to(cr, x, y + height);
+
+    cairo_close_path(cr);
+
+    cairo_fill(cr);
+    
+    // cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0); // Branco com 95% opacidade
+    // cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    // cairo_set_font_size(cr, 11);
+    
+    // cairo_text_extents_t extents;
+    // cairo_text_extents(cr, c->titlebar.title.c_str(), &extents);
+    
+    // Centralizar o texto verticalmente
+    // double text_y = (30 + extents.height) / 2.0;
+    // cairo_move_to(cr, TITLEBAR_PADDING, text_y);
+    // cairo_show_text(cr, c->titlebar.title.c_str());
+
+    // cairo_set_source_rgba(cr, 0.0, 0.5, 0.0, 1.0); 
+    // cairo_set_line_width(cr, 4.0);
+    // cairo_move_to(cr, 0, height);
+    // cairo_line_to(cr, width, height);
+    // cairo_stroke(cr);
+
+    // cairo_set_source_rgba(cr, 0.0, 0.5, 0.0, 1.0);
+    // cairo_arc(cr, width - extents.width, height - (height/4)*2, height/4, 0, 2 * M_PI);
+    // cairo_fill(cr);
+
+    cairo_surface_flush(surface);
+    
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+    free(attr_reply);
+    
+    xcb_flush(connection);
+}
+
+std::pair<xcb_pixmap_t, xcb_render_picture_t>  create_picture_from_window(xcb_window_t client, xcb_render_pictvisual_t *pict_format){
 
     xcb_pixmap_t pix = xcb_generate_id(connection); 
     xcb_void_cookie_t cookie = xcb_composite_name_window_pixmap_checked(connection, client, pix);
@@ -64,93 +226,115 @@ std::pair<xcb_pixmap_t, xcb_render_picture_t> create_picture_from_window(xcb_win
 
 }
 
-void client::draw(xcb_render_picture_t buffer){    
-    xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER, this->window.picture, XCB_RENDER_PICTURE_NONE, buffer, 0,0,0,0,this->shape.x, this->shape.y,this->shape.width,this->shape.height);
-};
-
 void add_client(xcb_generic_event_t *event) {
-
     xcb_map_request_event_t *map_request_event = (xcb_map_request_event_t *)event;
     xcb_window_t client_id = map_request_event->window;
 
     xcb_damage_damage_t damage = xcb_generate_id(connection);
     xcb_damage_create(connection, damage, client_id, XCB_DAMAGE_REPORT_LEVEL_RAW_RECTANGLES);
 
-    xcb_window_t frame = xcb_generate_id(connection);
-    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    uint32_t frame_vals[3] = {
-        0xffffff,
-        XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-        XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
-    };
-
-    int width = 500; 
-    int height = 500;
+    int width = screen->width_in_pixels / 2; 
+    int height = screen->height_in_pixels - 30 - CLIENT_POSITION_SPACING * 2;
+    int total_height = height + 30;
 
     int x = CLIENT_POSITION_SPACING;
     int y = CLIENT_POSITION_SPACING;
 
+    
+    // xcb_visualid_t argb_visual_id;
+    // uint8_t argb_depth;
+    // xcb_visualtype_t *argb_visual = find_argb_visual(&argb_visual_id, &argb_depth);
+    // 
+    // xcb_colormap_t colormap = xcb_generate_id(connection);
+    // xcb_create_colormap(connection, XCB_COLORMAP_ALLOC_NONE, colormap, root, argb_visual_id);
+    
+    // Creating titlebar
+    xcb_window_t titlebar = xcb_generate_id(connection);
     xcb_create_window(connection,
-      screen->root_depth,
-      frame, root,
-      x, y, width, height,
-      0,
-      XCB_WINDOW_CLASS_INPUT_OUTPUT,
-      screen->root_visual,
-      mask, frame_vals
+        screen->root_depth,
+        titlebar, root,
+        x, y,
+        width, total_height,
+        0,
+        XCB_WINDOW_CLASS_INPUT_OUTPUT,
+        screen->root_visual,
+        XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK, 
+        (uint32_t[]){
+            0x000000, 
+            XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
+            XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
+        }
     );
     
-    xcb_reparent_window(connection, client_id, frame, CLIENT_BORDER_SIZE, CLIENT_BORDER_SIZE);
-    
-    uint32_t config_values[] = { 
-        CLIENT_BORDER_SIZE, 
-        CLIENT_BORDER_SIZE,
-        (uint32_t)(width - 2 * CLIENT_BORDER_SIZE), // width (accounting for borders)
-        (uint32_t)(height - 2 * CLIENT_BORDER_SIZE), // height (accounting for borders)
-        0
-    };
-
-    std::cout << "frame id: " << frame << std::endl; 
-                    
+    // Configuring client
+    xcb_reparent_window(connection, client_id, titlebar, 0, 30);
     xcb_configure_window(
         connection,
         client_id,
-        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
-        config_values
+        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | 
+        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | 
+        XCB_CONFIG_WINDOW_STACK_MODE,
+        (uint32_t[]){
+            CLIENT_BORDER_SIZE, 
+            30,
+            (uint32_t)width - 2 * CLIENT_BORDER_SIZE,
+            (uint32_t)(height - CLIENT_BORDER_SIZE),
+            0
+        }
     );
 
-    xcb_map_window(connection, frame);
+    xcb_map_window(connection, titlebar);
     xcb_map_window(connection, client_id);
 
     xcb_rectangle_t shape = {
        .x = (int16_t) x,
        .y = (int16_t) y,
        .width = (uint16_t) width,
-       .height = (uint16_t) height 
+       .height = (uint16_t) total_height
     };
 
-    xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(connection, client_id);
+    xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(connection, titlebar);
     xcb_get_window_attributes_reply_t *attr_reply = xcb_get_window_attributes_reply(connection, attr_cookie, NULL);
-    xcb_render_pictvisual_t  *pict_format = xcb_render_util_find_visual_format(xcb_render_util_query_formats(connection), attr_reply->visual);
+    xcb_render_pictvisual_t *pict_format = xcb_render_util_find_visual_format(
+        xcb_render_util_query_formats(connection), attr_reply->visual);
 
-    std::pair<xcb_pixmap_t, xcb_render_picture_t> cli = create_picture_from_window(frame, pict_format);
+    std::pair<xcb_pixmap_t, xcb_render_picture_t> cli = create_picture_from_window(titlebar, pict_format);
 
     struct client c = {
-        .window = {client_id, cli.first, cli.second},
+        .window = {
+            client_id, 
+            cli.first, 
+            cli.second
+        },
         .shape = shape, 
-        .frame = frame,
+        .frame = titlebar,
         .damage = damage,
+        .titlebar = {
+            .id = titlebar, 
+            .width = width,
+            .title = get_window_title(client_id)
+        },
         .width = width,
-        .height = height,
+        .height = total_height,
         .x = x,
         .y = y,
         .fixed = 0,
         .resizing = 0
     };
 
-    workspaces[current_workspace].clients.insert(workspaces[current_workspace].clients.begin(), c); 
+    workspaces[current_workspace].clients.insert(workspaces[current_workspace].clients.begin(), c);
+    
+    draw_titlebar(&workspaces[current_workspace].clients[0]);
     
     free(attr_reply);
+    xcb_flush(connection);
+}
+
+void create_titlebar(client *c) {
+    c->titlebar.title = get_window_title(c->window.id);
+    
+    draw_titlebar(c);
+    
     xcb_flush(connection);
 }
 

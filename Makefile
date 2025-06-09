@@ -5,7 +5,7 @@ LDFLAGS = -lxcb -lxcb-ewmh -lxcb-keysyms -lcairo -lxcb-damage -lxcb-xfixes -lxcb
 SRC_DIR = app
 BUILD_DIR = build
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS = $(shell find $(SRC_DIR) -name '*.cpp') 
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 TARGET = $(BUILD_DIR)/ambiente
 
