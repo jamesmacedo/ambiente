@@ -1,8 +1,6 @@
-#ifndef WORKSPACE_H
-#define WORKSPACE_H
-
+#pragma once
 #include <vector>
-#include "client.h"
+class client;
 
 typedef struct workspace {
     std::vector<client> clients;
@@ -10,5 +8,3 @@ typedef struct workspace {
 
 extern int current_workspace;
 extern std::vector<workspace> workspaces;
-
-#endif

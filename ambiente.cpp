@@ -4,12 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cmath>
 #include <iostream>
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
 #include <vector>
-#include <cmath>
 
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -20,36 +18,10 @@
 #include <xcb/xfixes.h>
 #include <xcb/xcb_renderutil.h>
 
-#include "./app/config.h"
-#include "./app/workspace.h"
-#include "./app/client.h"
+#include "app/config.h"
+#include "app/workspace.h"
+#include "app/client.h"
 
-// typedef struct {
-//     uint32_t left;
-//     uint32_t right;
-//     uint32_t top;
-//     uint32_t bottom;
-// } wm_struts_t;
-//
-// enum ResizeEdge {
-//     NONE,
-//     LEFT,
-//     RIGHT,
-//     TOP,
-//     BOTTOM,
-//     BOTTOM_RIGHT,
-//     BOTTOM_LEFT,
-//     TOP_RIGHT,
-//     TOP_LEFT
-// };
-
-// ResizeEdge resize_edge = NONE;
-
-// bool is_resizing = false;
-// int initial_root_x = 0, initial_root_y = 0;
-// int initial_width = 0, initial_height = 0;
-//
-//
 xcb_window_t             root;
 xcb_screen_t            *screen;
 xcb_connection_t        *connection;
@@ -285,99 +257,6 @@ void draw(xcb_damage_damage_t damage) {
     xcb_flush(connection);
 }
 
-// void handle_map_request(xcb_generic_event_t *event) {
-//     xcb_map_request_event_t *map_request = (xcb_map_request_event_t *)event;
-//
-//     // if (is_dock_window(map_request->window)) {
-//     //     fprintf(stderr, "Janela %u DOCK.\n", map_request->window);
-//     //     g_dock_window = map_request->window;
-//     //     read_dock_struts(g_dock_window);
-//     //
-//     //     xcb_map_window(connection, g_dock_window);
-//     //
-//     //     uint32_t *rect= new uint32_t[4]{BORDER_GAP, BORDER_GAP, (uint32_t)(screen->width_in_pixels - (BORDER_GAP*2)) };
-//     //     xcb_configure_window(
-//     //         connection,
-//     //         g_dock_window,
-//     //         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH,
-//     //         rect
-//     //     );
-//     //
-//     //     xcb_flush(connection);
-//     //
-//     //     arrange_clients();
-//     //     return;
-//     // }
-//     
-//     add_client(frame, map_request->window);
-//
-//     xcb_map_window(connection, map_request->window);
-//
-//     arrange_clients();
-//     xcb_flush(connection);
-// }
-
-// void grab_key_with_modifiers(xcb_connection_t *connection, xcb_window_t root) {
-//
-//     const uint32_t num_lock_mask = XCB_MOD_MASK_2;
-//     const uint32_t caps_lock_mask = XCB_MOD_MASK_LOCK;
-//
-//     uint32_t mod_combinations[] = {
-//         modifiers,
-//         modifiers | num_lock_mask,
-//         modifiers | caps_lock_mask,
-//         modifiers | num_lock_mask | caps_lock_mask
-//     };
-//
-//     for (uint16_t mod : mod_combinations) {
-//         xcb_grab_key(connection, 1, root, mod, keycode,
-//                      XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-//     }
-//     xcb_flush(connection);
-// }
-
-//
-// void start_move(client *c, int root_x, int root_y) {
-//     is_resizing = false;
-//     current_resizing_client = c;
-//     initial_root_x = root_x;
-//     initial_root_y = root_y;
-//     initial_width = c->width;
-//     initial_height = c->height;
-//     resize_edge = NONE;
-// }
-
-// void move_client(int root_x, int root_y) {
-//
-//     std::cout << "Moving janela " << current_resizing_client->frame << std::endl;
-//
-//     int new_x = root_x - (initial_width/2);
-//     int new_y = root_y - (initial_height/2);
-//
-//     uint32_t values[] = {current_resizing_client->x, current_resizing_client->y};
-//     xcb_configure_window(connection, current_resizing_client->frame,
-//                          XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 
-//                          values);
-//     xcb_flush(connection);
-// }
-
-// void stop_resize() {
-//     is_resizing = false;
-//     current_resizing_client = nullptr;
-//     resize_edge = NONE;
-// }
-
-// void handle_motion_notify(xcb_generic_event_t *event) {
-//     xcb_motion_notify_event_t *motion_event = (xcb_motion_notify_event_t *)event;
-//     if (is_resizing && current_resizing_client) {
-//         resize_client(motion_event->root_x, motion_event->root_y);
-//     }
-// }
-
-// void handle_button_release(xcb_generic_event_t *event) {
-//     stop_resize();
-// }
-
 void setup() {
     connection = xcb_connect(NULL, NULL);
     if (xcb_connection_has_error(connection)) {
@@ -482,10 +361,10 @@ void event_loop() {
         if(response_type == (XCB_DAMAGE_NOTIFY + damage_ext->first_event)){
                 xcb_damage_notify_event_t *dn = (xcb_damage_notify_event_t *) event;
 
-                printf("Recebi DamageNotify: level=%u, área=(%d, %d, %u x %u)\n",
-                   dn->level,
-                   dn->area.x, dn->area.y,
-                   dn->area.width, dn->area.height);
+                // printf("Recebi DamageNotify: level=%u, área=(%d, %d, %u x %u)\n",
+                //    dn->level,
+                //    dn->area.x, dn->area.y,
+                //    dn->area.width, dn->area.height);
 
                 draw(dn->damage);
 

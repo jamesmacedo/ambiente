@@ -1,11 +1,9 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <xcb/xcb.h>
 #include <cairo/cairo.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/damage.h>
-#include "client.h" 
 
 #define DEFAULT_FONT_SIZE 12
 #define CLIENT_BORDER_RADIUS 8
@@ -25,6 +23,8 @@
 #define CLIENT_POSITION_SPACING 40
 
 #define USE_GRID false 
+
+class client;
 
 typedef struct root_config {
     int width;
@@ -51,4 +51,3 @@ void draw(xcb_damage_damage_t damage);
 // static xcb_ewmh_connection_t   *ewmh;
 // static uint16_t                 modifiers;
 // static xcb_keycode_t            keycode;
-#endif
