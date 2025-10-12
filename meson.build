@@ -5,9 +5,9 @@ project('ambiente', 'cpp',
 
 fs = import('python')
 
-src = include_directories('app')
+src = include_directories('core')
 
-cpp_files = run_command('find', 'app', '-name', '*.cpp').stdout().strip().split('\n')
+cpp_files = run_command('find', 'core', '-name', '*.cpp').stdout().strip().split('\n')
 
 srcs = files('ambiente.cpp')
 foreach f : cpp_files

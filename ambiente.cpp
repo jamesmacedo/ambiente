@@ -18,9 +18,11 @@
 #include <xcb/xfixes.h>
 #include <xcb/xcb_renderutil.h>
 
-#include "app/config.h"
-#include "app/workspace.h"
-#include "app/client.h"
+#include "core/workspace/workspace.h"
+#include "core/workspace/client.h"
+#include "input/keymanager.h"
+#include "config/keybindings.h"
+#include "config/config.h"
 
 xcb_window_t             root;
 xcb_screen_t            *screen;
@@ -38,6 +40,8 @@ xcb_render_pictformat_t root_format;
 xcb_render_picture_t root_picture;
 xcb_render_picture_t root_buffer;
 xcb_render_picture_t root_tile;
+
+WorkspaceManager wom;
 
 xcb_atom_t get_atom(const char *name) {
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(
@@ -68,101 +72,6 @@ xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
     }
     return NULL;
 }
-
-// bool is_dock_window(xcb_window_t w) {
-//     xcb_atom_t net_wm_window_type = ewmh->_NET_WM_WINDOW_TYPE;
-//     xcb_atom_t net_wm_window_type_dock = ewmh->_NET_WM_WINDOW_TYPE_DOCK;
-//
-//     xcb_get_property_cookie_t cookie = xcb_get_property(
-//         connection, 0, w,
-//         net_wm_window_type, 
-//         XCB_ATOM_ATOM,     
-//         0, 32
-//     );
-//     xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
-//     if (!reply) return false;
-//
-//     bool dock = false;
-//     if (xcb_get_property_value_length(reply) > 0) {
-//         xcb_atom_t *atoms = (xcb_atom_t *) xcb_get_property_value(reply);
-//         int count = xcb_get_property_value_length(reply) / sizeof(xcb_atom_t);
-//         for(int i = 0; i < count; i++) {
-//             if (atoms[i] == net_wm_window_type_dock) {
-//                 dock = true;
-//                 break;
-//             }
-//         }
-//     }
-//     free(reply);
-//     return dock;
-// }
-//
-// void read_dock_struts(xcb_window_t w) {
-//     memset(&g_dock_struts, 0, sizeof(g_dock_struts));
-//
-//     xcb_atom_t net_wm_strut_partial = ewmh->_NET_WM_STRUT_PARTIAL;
-//     xcb_get_property_cookie_t c_partial = xcb_get_property(
-//         connection, 0, w,
-//         net_wm_strut_partial,
-//         XCB_ATOM_CARDINAL,
-//         0, 12 
-//     );
-//     xcb_get_property_reply_t *r_partial = xcb_get_property_reply(connection, c_partial, NULL);
-//
-//     if (r_partial && xcb_get_property_value_length(r_partial) >= 12 * (int)sizeof(uint32_t)) {
-//         uint32_t *struts = (uint32_t*) xcb_get_property_value(r_partial);
-//         g_dock_struts.left   = struts[0];
-//         g_dock_struts.right  = struts[1];
-//         g_dock_struts.top    = struts[2];
-//         g_dock_struts.bottom = struts[3];
-//         free(r_partial);
-//         return; 
-//     }
-//     free(r_partial);
-//
-//     // Caso nao tenha partial, tenta _NET_WM_STRUT
-//     xcb_atom_t net_wm_strut = ewmh->_NET_WM_STRUT;
-//     xcb_get_property_cookie_t c_strut = xcb_get_property(
-//         connection, 0, w,
-//         net_wm_strut,
-//         XCB_ATOM_CARDINAL,
-//         0, 4
-//     );
-//     xcb_get_property_reply_t *r_strut = xcb_get_property_reply(connection, c_strut, NULL);
-//     if (r_strut && xcb_get_property_value_length(r_strut) >= 4 * (int)sizeof(uint32_t)) {
-//         uint32_t *s = (uint32_t *) xcb_get_property_value(r_strut);
-//         g_dock_struts.left   = s[0];
-//         g_dock_struts.right  = s[1];
-//         g_dock_struts.top    = s[2];
-//         g_dock_struts.bottom = s[3];
-//     }
-//     free(r_strut);
-// }
-
-// cairo_t *create_cairo_context(xcb_window_t window) {
-//     xcb_visualtype_t *visual = get_visualtype(screen);
-//     if (!visual) {
-//         fprintf(stderr, "Erro ao obter o visual da tela\n");
-//         exit(EXIT_FAILURE);
-//     }
-//
-//     xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
-//         connection, xcb_get_geometry(connection, window), NULL);
-//
-//     if (!geometry) {
-//         fprintf(stderr, "Erro ao obter geometria da janela\n");
-//         exit(EXIT_FAILURE);
-//     }
-//
-//     cairo_surface_t *surface = cairo_xcb_surface_create(
-//         connection, window, visual, geometry->width, geometry->height);
-//     cairo_t *cr = cairo_create(surface);
-//
-//     cairo_surface_destroy(surface);
-//     free(geometry);
-//
-//     return cr;
-// }
 
 xcb_pixmap_t generate_wallpaper_pixmap(std::string image) {
     const char *wallpaper_path = image.c_str();
@@ -222,10 +131,6 @@ void setup_root_background(){
 }
 
 void draw(xcb_damage_damage_t damage) {    
-    // for (client &c : workspaces[current_workspace].clients) {
-    //     xcb_map_window(connection, c.frame);
-    // }
-
     if(!root_buffer){
     
         std::cout << "creating background" << std::endl;
@@ -245,12 +150,7 @@ void draw(xcb_damage_damage_t damage) {
                             0, 0, 0, 0, 0, 0, screen->width_in_pixels, screen->height_in_pixels);
     }
 
-    for (client c : workspaces[current_workspace].clients) {
-        std::cout << "drawing" << std::endl;
-        if(c.damage == damage){
-            c.draw(root_buffer);
-        }
-    }
+    wom.arrange(root_buffer);
 
     xcb_render_composite(connection, XCB_RENDER_PICT_OP_SRC, root_buffer, XCB_RENDER_PICTURE_NONE, root_picture, 0,0,0,0,0,0, screen->width_in_pixels, screen->height_in_pixels);
 
@@ -333,9 +233,7 @@ void setup() {
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | 
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
     };
-
-    workspaces = {{}};
-    
+ 
     xcb_change_window_attributes(connection, root, XCB_CW_EVENT_MASK, masks);
     xcb_composite_redirect_subwindows(connection, root, XCB_COMPOSITE_REDIRECT_MANUAL);
 
@@ -349,11 +247,20 @@ void setup() {
     uint32_t values[] = { XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS };
     xcb_render_create_picture(connection, root_picture, root, root_format, XCB_RENDER_CP_SUBWINDOW_MODE, values);
 
+    // wom = WorkspaceManager(screen->width_in_pixels, screen->height_in_pixels);
+    wom = WorkspaceManager();
+
     draw(0);
     xcb_flush(connection);
 }
 
 void event_loop() {
+
+    KeyManager km = KeyManager(connection, root); 
+    register_keybindings(km);
+
+    km.grab_all();
+
     xcb_generic_event_t *event;
     while ((event = xcb_wait_for_event(connection))) {
         uint8_t response_type = event->response_type & ~0x80;
@@ -379,97 +286,51 @@ void event_loop() {
 
         switch (response_type) {
             case XCB_MAP_REQUEST:{
-                add_client(event);
+                xcb_map_request_event_t *e = (xcb_map_request_event_t *)event;
+                wom.add_client(e);
                 break;
             }
             case XCB_DESTROY_NOTIFY:
                 // remove_client(event);
                 break;
             case XCB_BUTTON_PRESS: {
-                client_button_press(event);
+                // client_button_press(event);
                 break;
             }
             case XCB_MOTION_NOTIFY: {
-                client_motion_handle(event);
+                // client_motion_handle(event);
                 break;
             }
             case XCB_BUTTON_RELEASE: {
-                client_button_release(event);
+                // client_button_release(event);
                 break;
             }
             case XCB_CONFIGURE_NOTIFY: {
-                auto configure = reinterpret_cast<xcb_configure_notify_event_t*>(event);
-                client* client = find_client(configure->window);
-                if (client != nullptr) {
-                    xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
-                        connection, xcb_get_geometry(connection, configure->window), NULL);
-
-                    // uint32_t config_values[] = { (uint32_t )geometry->x + CLIENT_BORDER_SIZE, (uint32_t)geometry->y + CLIENT_BORDER_SIZE, (uint32_t)geometry->width, (uint32_t)geometry->height, XCB_STACK_MODE_ABOVE};
-                    //
-                    // std::cout << "testando " << client->window.id << std::endl;
-                    // 
-                    // xcb_configure_window(
-                    //     connection,
-                    //     client->window.id,
-                    //     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
-                    //     config_values
-                    // );
-                    xcb_flush(connection);
-                }
+                // auto configure = reinterpret_cast<xcb_configure_notify_event_t*>(event);
+                // client* client = find_client(configure->window);
+                // if (client != nullptr) {
+                //     xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
+                //         connection, xcb_get_geometry(connection, configure->window), NULL);
+                //
+                //     // uint32_t config_values[] = { (uint32_t )geometry->x + CLIENT_BORDER_SIZE, (uint32_t)geometry->y + CLIENT_BORDER_SIZE, (uint32_t)geometry->width, (uint32_t)geometry->height, XCB_STACK_MODE_ABOVE};
+                //     //
+                //     // std::cout << "testando " << client->window.id << std::endl;
+                //     // 
+                //     // xcb_configure_window(
+                //     //     connection,
+                //     //     client->window.id,
+                //     //     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
+                //     //     config_values
+                //     // );
+                //     xcb_flush(connection);
+                // }
                 break;
             }
-            // case XCB_KEY_PRESS: {
-            //     // xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            //     //
-            //     // std::cout << "teste" << std::endl;
-            //     //
-            //     // if (key_event->detail == keycode && (key_event->state & modifiers) == modifiers) {
-            //     //     system("kitty &");
-            //     // }
-            //
-            //     xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            //
-            //
-            //     std::cout << "Tecla pressionada: " << key_event->detail << std::endl;
-            //     std::cout << "Event state: " << key_event->state << std::endl;
-            //
-            //     // Verificar se a tecla Control está pressionada
-            //     bool ctrl_pressed = key_event->state & XCB_MOD_MASK_CONTROL;
-            //
-            //     std::cout << "Is pressed: " << ctrl_pressed << std::endl;
-            //
-            //     // Obter o keysym da tecla pressionada
-            //     xcb_keysym_t keysym = xcb_key_symbols_get_keysym(keysyms, key_event->detail, 0);
-            //
-            //     if (ctrl_pressed && keysym == XK_r) {
-            //         // swap_client();
-            //         // arrange_clients();
-            //         std::cout << "Ctrl + r foi pressionado!" << std::endl;
-            //     }
-            //
-            //     if ((ctrl_pressed && keysym == XK_Left) || (ctrl_pressed && keysym == XK_Right)) { 
-            //
-            //         // std::cout << "Ctrl + Left ou Ctrl + Right foi pressionado, mudando area de trabalho!" << std::endl;
-            //         
-            //         for (client &c : workspaces[current_workspace].clients) {
-            //             xcb_unmap_window(connection, c.child);
-            //         }
-            //
-            //         if(keysym == XK_Left) {
-            //             if(current_workspace > 0)
-            //                 current_workspace--;
-            //         } else if(keysym == XK_Right) {
-            //             if(current_workspace < workspaces.size()) {
-            //                 workspaces.push_back({{}});
-            //                 current_workspace++;
-            //             }
-            //         }
-            //         std::cout << "Workspace selecionado: " << current_workspace << std::endl;
-            //         arrange_clients();
-            //     }
-            //
-            //     break;
-            // }
+            case XCB_KEY_PRESS: {
+                xcb_key_press_event_t *e = (xcb_key_press_event_t *)event;
+                km.handle_event(e);
+                break;
+            }
             default:
                 break;
         }

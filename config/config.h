@@ -5,6 +5,8 @@
 #include <xcb/xcb_keysyms.h>
 #include <xcb/damage.h>
 
+#define MAX_WORKSPACES 4
+
 #define DEFAULT_FONT_SIZE 12
 #define CLIENT_BORDER_RADIUS 8
 #define FRAME_BORDER_WIDTH 5
@@ -25,6 +27,7 @@
 #define USE_GRID false 
 
 class client;
+class WorkspaceManager;
 
 typedef struct root_config {
     int width;
@@ -38,6 +41,7 @@ extern xcb_screen_t            *screen;
 extern xcb_connection_t        *connection;
 extern xcb_key_symbols_t       *keysyms; 
 extern root_config              config; 
+extern WorkspaceManager wom;
 
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);
