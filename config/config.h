@@ -1,11 +1,11 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <xcb/xcb.h>
 #include <cairo/cairo.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/damage.h>
-#include "client.h" 
+
+#define MAX_WORKSPACES 4
 
 #define DEFAULT_FONT_SIZE 12
 #define CLIENT_BORDER_RADIUS 8
@@ -26,6 +26,9 @@
 
 #define USE_GRID false 
 
+class client;
+class WorkspaceManager;
+
 typedef struct root_config {
     int width;
     int height;
@@ -38,6 +41,8 @@ extern xcb_screen_t            *screen;
 extern xcb_connection_t        *connection;
 extern xcb_key_symbols_t       *keysyms; 
 extern root_config              config; 
+extern WorkspaceManager wom;
+extern xcb_render_pictformat_t root_format;
 
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);
@@ -51,4 +56,3 @@ void draw(xcb_damage_damage_t damage);
 // static xcb_ewmh_connection_t   *ewmh;
 // static uint16_t                 modifiers;
 // static xcb_keycode_t            keycode;
-#endif
