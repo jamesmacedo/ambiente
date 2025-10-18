@@ -1,29 +1,29 @@
 #pragma once
 #include <vector>
+#include <string>
 #include <xcb/xcb.h>
 
 #include <xcb/render.h>
 #include <xcb/damage.h>
-class client;
 
-struct workspace {
-    std::vector<client> clients;
-};
+class Client;
 
-class WorkspaceManager {
+class Workspace {
 public:
-  WorkspaceManager();
-  ~WorkspaceManager();
+  Workspace(std::string wallpaper);
+  ~Workspace();
 
-void arrange(xcb_render_picture_t buffer);
+Client* find_client(xcb_window_t window);
+void arrange();
+void draw(xcb_connection_t* connection);
 void add_client(xcb_map_request_event_t *e);
-void arrange_clients();
-
-void previous();
-void next();
+void damaged(xcb_damage_notify_event_t *dn);
+std::vector<Client>& get_clients(){ return clients; };
 
 private:
-    int current_workspace = 0;
-    std::vector<workspace> workspaces;
-    int width, height;
+    std::vector<Client> clients;
+
+    xcb_render_picture_t root_picture = 0;
+    xcb_render_picture_t root_buffer = 0;
+    xcb_render_picture_t root_tile = 0;
 };

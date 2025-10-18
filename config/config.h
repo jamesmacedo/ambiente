@@ -42,6 +42,7 @@ extern xcb_connection_t        *connection;
 extern xcb_key_symbols_t       *keysyms; 
 extern root_config              config; 
 extern WorkspaceManager wom;
+extern xcb_render_pictformat_t root_format;
 
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);

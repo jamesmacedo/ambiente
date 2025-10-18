@@ -13,15 +13,6 @@ void client_find_grid_pos(int32_t *x, int32_t *y) {
     *y = floor(*y/CLIENT_POSITION_SPACING) * CLIENT_POSITION_SPACING;
 }
 
-// client* find_client(xcb_window_t window) {
-//     for (auto it = workspaces[current_workspace].clients.begin(); it != workspaces[current_workspace].clients.end(); ++it) {
-//         if(it->frame == window || it->window.id == window){
-//             return &(*it);
-//         }   
-//     } 
-//     return nullptr;
-// }
-
 std::pair<xcb_pixmap_t, xcb_render_picture_t> create_picture_from_window(xcb_window_t client, xcb_render_pictvisual_t *pict_format){
 
     xcb_pixmap_t pix = xcb_generate_id(connection); 

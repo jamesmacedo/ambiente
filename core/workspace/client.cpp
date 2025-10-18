@@ -13,38 +13,43 @@
 #include "core/workspace/client.h"
 #include "core/workspace/workspace.h"
 
-client *current_resizing_client = nullptr;
-int start_x, start_y = 0;
-int initial_width, initial_height = 0;
-int initial_x, initial_y = 0;
-bool is_resizing, is_moving = false;
+Client::Client() {}
+Client::Client(entity window, xcb_damage_damage_t damage)
+    : window(window), damage(damage) {}
+Client::~Client() {}
 
-// void swap_client() {
-//     if (workspaces[current_workspace].clients.size() >= 2) {
-//         std::swap(workspaces[current_workspace].clients[current_workspace],
-//         workspaces[current_workspace].clients[1]);
-//     }
-// }
-
-void client::draw(xcb_render_picture_t buffer) {
-
-  // uint32_t config_values[] = {
-  //     (uint32_t)this->shape.x, (uint32_t)this->shape.y,
-  //     (uint32_t)(this->shape.height), // width (accounting for borders)
-  //     (uint32_t)(this->shape.height), // height (accounting for borders)
-  //     0};
-
-  // xcb_configure_window(connection, this->window.id,
-  //                      XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-  //                          XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
-  //                          XCB_CONFIG_WINDOW_STACK_MODE,
-  //                      config_values);
-
+void Client::draw(xcb_render_picture_t buffer) {
   xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER,
                        this->window.picture, XCB_RENDER_PICTURE_NONE, buffer, 0,
                        0, 0, 0, this->shape.x, this->shape.y, this->shape.width,
                        this->shape.height);
 };
+
+void Client::update_visuals(xcb_pixmap_t pixmap, xcb_render_picture_t picture) {
+  this->window.pixmap = pixmap;
+  this->window.picture = picture;
+}
+
+void Client::update_topology(int x, int y, int width, int height) {
+  std::cout << "X: " << x << "Y: " << y << std::endl;
+
+  xcb_rectangle_t shape = {
+        (int16_t)x, (int16_t)y,
+        (uint16_t)width, (uint16_t)height,
+  };
+
+  this->shape = shape;
+
+  uint32_t config_values[] = {(uint32_t)this->shape.x, (uint32_t)this->shape.y,
+                              (uint32_t)(this->shape.width),
+                              (uint32_t)(this->shape.height), 0};
+
+  xcb_configure_window(connection, this->window.id,
+                       XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                           XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
+                           XCB_CONFIG_WINDOW_STACK_MODE,
+                       config_values);
+}
 
 // void client_button_press(xcb_generic_event_t *event) {
 //     xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
@@ -123,8 +128,8 @@ void client::draw(xcb_render_picture_t buffer) {
 //
 //     uint32_t values[] = {(uint32_t)new_x, (uint32_t)new_y};
 //     // xcb_configure_window(connection, current_resizing_client->frame,
-//     //                      XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
-//     xcb_flush(connection);
+//     //                      XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+//     values); xcb_flush(connection);
 //   }
 //
 //   if (is_resizing && current_resizing_client) {
@@ -147,7 +152,8 @@ void client::draw(xcb_render_picture_t buffer) {
 //
 //     // uint32_t frame_values[] = {(uint32_t)new_width, (uint32_t)new_height};
 //     // xcb_configure_window(connection, current_resizing_client->frame,
-//     //                      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+//     //                      XCB_CONFIG_WINDOW_WIDTH |
+//     XCB_CONFIG_WINDOW_HEIGHT,
 //     //                      frame_values);
 //
 //     uint32_t client_values[] = {
@@ -161,20 +167,20 @@ void client::draw(xcb_render_picture_t buffer) {
 //   }
 // }
 
-void client_button_release(xcb_generic_event_t *event) {
-  if (is_resizing) {
-    std::cout << "Finished resizing client" << std::endl;
-    is_resizing = false;
-  }
-
-  if (is_moving) {
-    std::cout << "Finished moving client" << std::endl;
-    is_moving = false;
-  }
-
-  current_resizing_client = nullptr;
-  xcb_flush(connection);
-}
+// void client_button_release(xcb_generic_event_t *event) {
+//   if (is_resizing) {
+//     std::cout << "Finished resizing client" << std::endl;
+//     is_resizing = false;
+//   }
+//
+//   if (is_moving) {
+//     std::cout << "Finished moving client" << std::endl;
+//     is_moving = false;
+//   }
+//
+//   current_resizing_client = nullptr;
+//   xcb_flush(connection);
+// }
 
 // void remove_client(xcb_generic_event_t *event) {
 //     xcb_destroy_notify_event_t *destroy_notify = (xcb_destroy_notify_event_t

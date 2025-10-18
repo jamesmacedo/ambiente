@@ -1,6 +1,6 @@
 #pragma once
 #include "input/keymanager.h"
-#include "core/workspace/workspace.h"
+#include "core/workspace/workspace_manager.h"
 #include "config.h"
 #include <unistd.h>
 #include <sys/types.h>
@@ -24,10 +24,12 @@ inline void register_keybindings(KeyManager &km) {
   });
 
   km.add_binding(XCB_MOD_MASK_4, XK_Right, []() {
+    std::cout << " proximo " << std::endl;
     wom.next(); 
   });
 
   km.add_binding(XCB_MOD_MASK_4, XK_Left, []() {
+    std::cout << " anterior " << std::endl;
     wom.previous(); 
   });
 }
