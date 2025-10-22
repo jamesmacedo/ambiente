@@ -3,6 +3,9 @@
 #include <xcb/xcb.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <iostream>
+#include <filesystem>
+#include <random>
 
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
     xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
@@ -17,8 +20,39 @@ xcb_visualtype_t *get_visualtype(xcb_screen_t *screen) {
     return NULL;
 }
 
-xcb_pixmap_t generate_wallpaper_pixmap(std::string image, xcb_screen_t* screen, xcb_connection_t* connection, xcb_window_t root) {
-    const char *wallpaper_path = image.c_str();
+std::string random_image(){
+    std::filesystem::path dir = "/home/nemo/Documentos/wallpaper";  
+    if(!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir)){
+        std::cerr << "Wallpaper directory does not exist or is not a directory" << std::endl;
+        exit(1);
+    }
+
+    std::string path;
+    std::vector<std::filesystem::path> png_files;
+    size_t n = 1;
+
+    for(const auto &entry: std::filesystem::recursive_directory_iterator(dir)){
+        if(entry.path().extension() == ".png"){
+            png_files.push_back(entry.path());
+        }
+    }
+
+    if(png_files.empty()){
+        std::cout << "No png files found in the directory" << std::endl;
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, png_files.size() - 1);
+
+    return png_files[dist(gen)].string();
+}
+
+xcb_pixmap_t generate_wallpaper_pixmap(xcb_screen_t* screen, xcb_connection_t* connection, xcb_window_t root) {
+    // const char *wallpaper_path = image.c_str();
+    std::string wallpaper_string = random_image().c_str();
+    std::cout << wallpaper_string << std::endl;
+    const char *wallpaper_path = wallpaper_string.c_str();
 
     int screen_width = screen->width_in_pixels;
     int screen_height = screen->height_in_pixels;

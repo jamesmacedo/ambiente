@@ -22,7 +22,7 @@ public:
   void next();
 
 private:
-  int c_workspace = 0;
+  size_t c_workspace = 0;
   std::vector<Workspace> workspaces = {};
   int width, height;
 };

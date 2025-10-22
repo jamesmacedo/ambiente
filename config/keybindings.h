@@ -24,12 +24,19 @@ inline void register_keybindings(KeyManager &km) {
   });
 
   km.add_binding(XCB_MOD_MASK_4, XK_Right, []() {
-    std::cout << " proximo " << std::endl;
     wom.next(); 
   });
 
   km.add_binding(XCB_MOD_MASK_4, XK_Left, []() {
-    std::cout << " anterior " << std::endl;
     wom.previous(); 
   });
+
+  km.add_binding(XCB_MOD_MASK_4, XK_k, []() {
+    wom.current()->switch_client(); 
+  });
+
+  // km.add_binding(XCB_MOD_MASK_4, XK_p, []() {
+  //   wom.pin(); 
+  // });
+
 }

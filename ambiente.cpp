@@ -187,6 +187,11 @@ void event_loop() {
                 // client_button_release(event);
                 break;
             }
+            case XCB_CONFIGURE_NOTIFY:{
+                xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t  *)event;
+                wom.current()->configure_client(e);
+                break;
+            }
             case XCB_KEY_PRESS: {
                 xcb_key_press_event_t *e = (xcb_key_press_event_t *)event;
                 km.handle_event(e);

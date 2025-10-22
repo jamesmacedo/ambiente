@@ -16,23 +16,29 @@ WorkspaceManager::WorkspaceManager() {}
 
 WorkspaceManager::WorkspaceManager(int width, int height)
     : width(width), height(height) {
-  this->workspaces.emplace_back(Workspace("/home/nemo/Documentos/wallpaper/after.png"));
+  this->workspaces.emplace_back(Workspace());
 }
 
 WorkspaceManager::~WorkspaceManager() {}
 
 void WorkspaceManager::previous() {
-  std::cout << "anterior" << std::endl;
-  if (c_workspace > 0) {
-    c_workspace--;
+  if (c_workspace <= 0) {
+    return;
   }
+
+  c_workspace--;
+  this->current()->draw(connection);
 }
 
 void WorkspaceManager::next() {
-  std::cout << "proximo" << std::endl;
-  if (c_workspace  != MAX_WORKSPACES &&
-      c_workspace < workspaces.size()) {
-  this->workspaces.emplace_back(Workspace("/home/nemo/Documentos/wallpaper/forest.png"));
-    c_workspace++;
+  if (c_workspace == MAX_WORKSPACES) {
+    return;
   }
+
+  if (c_workspace == workspaces.size() - 1) {
+    this->workspaces.emplace_back(Workspace());
+  }
+
+  c_workspace++;
+  this->current()->draw(connection);
 }

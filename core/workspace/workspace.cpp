@@ -13,13 +13,14 @@
 #include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_renderutil.h>
+#include <xcb/xproto.h>
 
 int avail_width = 1280 - (WORKSPACE_GAP_SIZE * 2),
     avail_height = 720 - (WORKSPACE_GAP_SIZE * 2);
 
-Workspace::Workspace(std::string wallpaper) {
+Workspace::Workspace() {
   xcb_pixmap_t wallpaper_pix =
-      generate_wallpaper_pixmap(wallpaper, screen, connection, root);
+      generate_wallpaper_pixmap(screen, connection, root);
   root_tile = xcb_generate_id(connection);
   xcb_render_create_picture(connection, root_tile, wallpaper_pix, root_format,
                             0, NULL);
@@ -28,11 +29,13 @@ Workspace::Workspace(std::string wallpaper) {
 Workspace::~Workspace() {}
 
 void Workspace::damaged(xcb_damage_notify_event_t *dn) {
-  printf("Recebi DamageNotify: level=%u, área=(%d, %d, %u x %u)\n", dn->level,
-         dn->area.x, dn->area.y, dn->area.width, dn->area.height);
+  printf("Recebi DamageNotify: damage=%d,level=%u, área=(%d, %d, %u x %u)\n",
+         dn->damage, dn->level, dn->area.x, dn->area.y, dn->area.width,
+         dn->area.height);
 
   if (Client *c = this->find_client(dn->drawable)) {
     if (!c->get_window().picture) {
+
       xcb_get_window_attributes_cookie_t attr_cookie =
           xcb_get_window_attributes(connection, c->get_window().id);
       xcb_get_window_attributes_reply_t *attr_reply =
@@ -50,12 +53,11 @@ void Workspace::damaged(xcb_damage_notify_event_t *dn) {
       free(attr_reply);
     }
 
+    std::cout << "Janela encontrada: " << c->get_window().id << std::endl;
     c->draw(root_buffer);
 
-    // c->draw(buffer);
-    //
-    // xcb_damage_subtract(connection, dn->damage, XCB_XFIXES_REGION_NONE,
-    //                     XCB_XFIXES_REGION_NONE);
+    xcb_damage_subtract(connection, dn->damage, XCB_XFIXES_REGION_NONE,
+                        XCB_XFIXES_REGION_NONE);
     xcb_flush(connection);
   }
 }
@@ -131,7 +133,6 @@ void Workspace::draw(xcb_connection_t *connection) {
 Client *Workspace::find_client(xcb_window_t window) {
   std::vector<Client> &c = get_clients();
   auto it = std::find_if(c.begin(), c.end(), [&](Client &c) {
-    std::cout << c.get_window().id << std::endl;
     return c.get_window().id == window;
   });
   return (it == c.end()) ? nullptr : &(*it);
@@ -159,11 +160,59 @@ void Workspace::add_client(xcb_map_request_event_t *e) {
 void Workspace::remove_client(xcb_destroy_notify_event_t *e) {
 
   std::vector<Client> &c = get_clients();
-  auto new_end = std::remove_if(c.begin(), c.end(),
-                 [&](Client &c) { return c.get_window().id == e->window; });
+  auto new_end = std::remove_if(c.begin(), c.end(), [&](Client &c) {
+    return c.get_window().id == e->window;
+  });
 
   c.erase(new_end, c.end());
 
   this->arrange();
   this->draw(connection);
+}
+
+void Workspace::configure_client(xcb_configure_notify_event_t *e) {
+  std::cout << "Configure notify" << std::endl;
+  if (Client *c = this->find_client(e->window)) {
+    if (c->get_window().picture)
+      xcb_render_free_picture(connection, c->get_window().picture);
+    if (c->get_window().pixmap)
+      xcb_free_pixmap(connection, c->get_window().pixmap);
+
+    xcb_get_window_attributes_cookie_t attr_cookie =
+        xcb_get_window_attributes(connection, c->get_window().id);
+    xcb_get_window_attributes_reply_t *attr_reply =
+        xcb_get_window_attributes_reply(connection, attr_cookie, NULL);
+    xcb_render_pictvisual_t *pict_format = xcb_render_util_find_visual_format(
+        xcb_render_util_query_formats(connection), attr_reply->visual);
+
+    std::pair<xcb_pixmap_t, xcb_render_picture_t> cli =
+        create_picture_from_window(c->get_window().id, pict_format);
+
+    c->update_visuals(cli.first, cli.second);
+
+    free(attr_reply);
+
+    this->draw(connection);
+
+  }
+}
+
+void Workspace::switch_client() {
+  auto clients = this->get_clients();
+  if (clients.empty())
+    return;
+
+  static size_t index = 0;
+  index = (index + 1) % clients.size();
+
+  xcb_window_t window = clients[index].get_window().id;
+
+  xcb_set_input_focus(connection, XCB_INPUT_FOCUS_POINTER_ROOT, window,
+                      XCB_CURRENT_TIME);
+
+  uint32_t values[] = {XCB_STACK_MODE_ABOVE};
+  xcb_configure_window(connection, window, XCB_CONFIG_WINDOW_STACK_MODE,
+                       values);
+
+  xcb_flush(connection);
 }
