@@ -14,7 +14,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_renderutil.h>
 
-int avail_width = 1280 - (WORKSPACE_GAP_SIZE*2), avail_height = 720 - (WORKSPACE_GAP_SIZE*2);
+int avail_width = 1280 - (WORKSPACE_GAP_SIZE * 2),
+    avail_height = 720 - (WORKSPACE_GAP_SIZE * 2);
 
 Workspace::Workspace(std::string wallpaper) {
   xcb_pixmap_t wallpaper_pix =
@@ -63,32 +64,35 @@ void Workspace::arrange() {
   std::cout << "Arranging clients" << std::endl;
   // int cursor_x = WORKSPACE_GAP_SIZE, cursor_y = WORKSPACE_GAP_SIZE;
   // int i = 1;
-    
-  std::vector<Client*> vis;
 
-    vis.reserve(this->get_clients().size());
-    for(auto& c: this->get_clients()){
-        if(c.is_mapped()) vis.push_back(&c);
-    }
-    if (vis.empty()) return;
+  std::vector<Client *> vis;
 
-    if(vis.size() == 1){
-        vis[0]->update_topology(WORKSPACE_GAP_SIZE, WORKSPACE_GAP_SIZE, avail_width, avail_height);
-        return;
-    }
+  vis.reserve(this->get_clients().size());
+  for (auto &c : this->get_clients()) {
+    if (c.is_mapped())
+      vis.push_back(&c);
+  }
+  if (vis.empty())
+    return;
 
-    int w_left = (avail_width - (WORKSPACE_GAP_SIZE)/2)/2;
-    int w_right = avail_width - (WORKSPACE_GAP_SIZE)/2 - w_left;
+  if (vis.size() == 1) {
+    vis[0]->update_topology(WORKSPACE_GAP_SIZE, WORKSPACE_GAP_SIZE, avail_width,
+                            avail_height);
+    return;
+  }
 
-    int x_left = WORKSPACE_GAP_SIZE;
-    int x_right = WORKSPACE_GAP_SIZE + w_left + (WORKSPACE_GAP_SIZE/2);
-    int y = WORKSPACE_GAP_SIZE;
-    int h = avail_height;
+  int w_left = (avail_width - (WORKSPACE_GAP_SIZE) / 2) / 2;
+  int w_right = avail_width - (WORKSPACE_GAP_SIZE) / 2 - w_left;
 
-    vis[0]->update_topology(x_left, y, w_left, h);
-    vis[1]->update_topology(x_right, y, w_right, h);
+  int x_left = WORKSPACE_GAP_SIZE;
+  int x_right = WORKSPACE_GAP_SIZE + w_left + (WORKSPACE_GAP_SIZE / 2);
+  int y = WORKSPACE_GAP_SIZE;
+  int h = avail_height;
 
-    this->draw(connection);
+  vis[0]->update_topology(x_left, y, w_left, h);
+  vis[1]->update_topology(x_right, y, w_right, h);
+
+  this->draw(connection);
 }
 
 void Workspace::draw(xcb_connection_t *connection) {
@@ -150,26 +154,16 @@ void Workspace::add_client(xcb_map_request_event_t *e) {
 
   xcb_map_window(connection, client_id);
   xcb_flush(connection);
+}
 
-  // xcb_window_t frame = xcb_generate_id(connection);
-  // uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-  // uint32_t frame_vals[3] = {
-  //     0xffffff,
-  //     XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-  //     XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION
-  // };
+void Workspace::remove_client(xcb_destroy_notify_event_t *e) {
 
-  // xcb_create_window(connection,
-  //   screen->root_depth,
-  //   frame, root,
-  //   x, y, width, height,
-  //   0,
-  //   XCB_WINDOW_CLASS_INPUT_OUTPUT,
-  //   screen->root_visual,
-  //   mask, frame_vals
-  // );
-  // xcb_reparent_window(connection, client_id, frame, CLIENT_BORDER_SIZE,
-  // CLIENT_BORDER_SIZE);
+  std::vector<Client> &c = get_clients();
+  auto new_end = std::remove_if(c.begin(), c.end(),
+                 [&](Client &c) { return c.get_window().id == e->window; });
 
-  // xcb_map_window(connection, frame);
+  c.erase(new_end, c.end());
+
+  this->arrange();
+  this->draw(connection);
 }

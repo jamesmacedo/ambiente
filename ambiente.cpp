@@ -157,8 +157,6 @@ void event_loop() {
     xcb_generic_event_t *event;
     while ((event = xcb_wait_for_event(connection))) {
 
-        // wom.current()->draw(connection);
-
         uint8_t response_type = event->response_type & ~0x80;
 
         if(response_type == (XCB_DAMAGE_NOTIFY + damage_ext->first_event)){
@@ -172,9 +170,11 @@ void event_loop() {
                 wom.current()->add_client(e);
                 break;
             }
-            case XCB_DESTROY_NOTIFY:
-                // remove_client(event);
+            case XCB_DESTROY_NOTIFY:{
+                xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t  *)event;
+                wom.current()->remove_client(e);
                 break;
+            }
             case XCB_BUTTON_PRESS: {
                 // client_button_press(event);
                 break;
@@ -185,27 +185,6 @@ void event_loop() {
             }
             case XCB_BUTTON_RELEASE: {
                 // client_button_release(event);
-                break;
-            }
-            case XCB_CONFIGURE_NOTIFY: {
-                // auto configure = reinterpret_cast<xcb_configure_notify_event_t*>(event);
-                // client* client = find_client(configure->window);
-                // if (client != nullptr) {
-                //     xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(
-                //         connection, xcb_get_geometry(connection, configure->window), NULL);
-                //
-                //     // uint32_t config_values[] = { (uint32_t )geometry->x + CLIENT_BORDER_SIZE, (uint32_t)geometry->y + CLIENT_BORDER_SIZE, (uint32_t)geometry->width, (uint32_t)geometry->height, XCB_STACK_MODE_ABOVE};
-                //     //
-                //     // std::cout << "testando " << client->window.id << std::endl;
-                //     // 
-                //     // xcb_configure_window(
-                //     //     connection,
-                //     //     client->window.id,
-                //     //     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_STACK_MODE,
-                //     //     config_values
-                //     // );
-                //     xcb_flush(connection);
-                // }
                 break;
             }
             case XCB_KEY_PRESS: {
