@@ -8,6 +8,7 @@
 #include "utils/wallpaper.cpp"
 #include <algorithm>
 #include <iostream>
+#include <utility>
 #include <xcb/composite.h>
 #include <xcb/damage.h>
 #include <xcb/render.h>
@@ -29,11 +30,11 @@ Workspace::Workspace() {
 Workspace::~Workspace() {}
 
 void Workspace::damaged(xcb_damage_notify_event_t *dn) {
-  printf("Recebi DamageNotify: damage=%d,level=%u, área=(%d, %d, %u x %u)\n",
-         dn->damage, dn->level, dn->area.x, dn->area.y, dn->area.width,
-         dn->area.height);
+  // printf("Recebi DamageNotify: damage=%d,level=%u, área=(%d, %d, %u x %u)\n",
+  //        dn->damage, dn->level, dn->area.x, dn->area.y, dn->area.width,
+  //        dn->area.height);
 
-  if (Client *c = this->find_client(dn->drawable)) {
+  if (Client *c = this->find_client(dn->drawable).first) {
     if (!c->get_window().picture) {
 
       xcb_get_window_attributes_cookie_t attr_cookie =
@@ -53,13 +54,22 @@ void Workspace::damaged(xcb_damage_notify_event_t *dn) {
       free(attr_reply);
     }
 
-    std::cout << "Janela encontrada: " << c->get_window().id << std::endl;
     c->draw(root_buffer);
 
     xcb_damage_subtract(connection, dn->damage, XCB_XFIXES_REGION_NONE,
                         XCB_XFIXES_REGION_NONE);
     xcb_flush(connection);
   }
+}
+
+void Workspace::focused(xcb_focus_in_event_t *e){
+
+    std::cout << e->event << std::endl;
+
+    if(this->pinned_client){
+        std::cout << "é o pinned; " << this->pinned_client->get_window().id << std::endl;
+    }
+    
 }
 
 void Workspace::arrange() {
@@ -130,12 +140,13 @@ void Workspace::draw(xcb_connection_t *connection) {
   xcb_flush(connection);
 }
 
-Client *Workspace::find_client(xcb_window_t window) {
+std::pair<Client*, size_t> Workspace::find_client(xcb_window_t window) {
   std::vector<Client> &c = get_clients();
   auto it = std::find_if(c.begin(), c.end(), [&](Client &c) {
     return c.get_window().id == window;
   });
-  return (it == c.end()) ? nullptr : &(*it);
+  size_t index = std::distance(c.begin(), it);
+  return (it == c.end()) ? std::make_pair(nullptr, 0) : std::make_pair(&(*it), index);
 }
 
 void Workspace::add_client(xcb_map_request_event_t *e) {
@@ -172,7 +183,7 @@ void Workspace::remove_client(xcb_destroy_notify_event_t *e) {
 
 void Workspace::configure_client(xcb_configure_notify_event_t *e) {
   std::cout << "Configure notify" << std::endl;
-  if (Client *c = this->find_client(e->window)) {
+  if (Client *c = this->find_client(e->window).first) {
     if (c->get_window().picture)
       xcb_render_free_picture(connection, c->get_window().picture);
     if (c->get_window().pixmap)
@@ -193,7 +204,27 @@ void Workspace::configure_client(xcb_configure_notify_event_t *e) {
     free(attr_reply);
 
     this->draw(connection);
+  }
+}
 
+void Workspace::pin_client() {
+
+  xcb_get_input_focus_cookie_t cookie = xcb_get_input_focus(connection);
+  xcb_get_input_focus_reply_t *reply =
+      xcb_get_input_focus_reply(connection, cookie, NULL);
+
+  if (!reply) {
+    fprintf(stderr, "Error while trying to find the focused windows\n");
+    return;
+  }
+  std::vector<Client>& clients = this->get_clients();
+
+  std::pair<Client*, size_t> client = this->find_client(reply->focus);
+
+  if (client.first) {
+    this->pinned_client = client.first;
+    std::rotate(clients.begin(), clients.begin() + client.second, clients.begin() + client.second + 1);
+    this->arrange();
   }
 }
 

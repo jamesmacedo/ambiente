@@ -34,6 +34,5 @@ private:
     entity window;
     xcb_rectangle_t shape;
     xcb_damage_damage_t damage;
-    int pinned;
     int mapped = false;
 };

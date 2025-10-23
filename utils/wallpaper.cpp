@@ -29,7 +29,6 @@ std::string random_image(){
 
     std::string path;
     std::vector<std::filesystem::path> png_files;
-    size_t n = 1;
 
     for(const auto &entry: std::filesystem::recursive_directory_iterator(dir)){
         if(entry.path().extension() == ".png"){

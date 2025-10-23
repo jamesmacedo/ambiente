@@ -35,8 +35,8 @@ inline void register_keybindings(KeyManager &km) {
     wom.current()->switch_client(); 
   });
 
-  // km.add_binding(XCB_MOD_MASK_4, XK_p, []() {
-  //   wom.pin(); 
-  // });
+  km.add_binding(XCB_MOD_MASK_4, XK_p, []() {
+    wom.current()->pin_client(); 
+  });
 
 }
