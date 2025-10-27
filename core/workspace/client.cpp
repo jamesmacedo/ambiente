@@ -40,7 +40,18 @@ void Client::update_topology(int x, int y, int width, int height) {
 
   this->shape = shape;
 
-  uint32_t config_values[] = {(uint32_t)this->shape.x, (uint32_t)this->shape.y,
+  uint32_t frame_values[] = {(uint32_t)this->shape.x, (uint32_t)this->shape.y,
+                              (uint32_t)(this->shape.width),
+                              (uint32_t)(this->shape.height), 0};
+
+  xcb_configure_window(connection, this->window.frame,
+                       XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                           XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
+                           XCB_CONFIG_WINDOW_STACK_MODE,
+                       frame_values);
+
+
+  uint32_t client_values[] = {(uint32_t)0, (uint32_t)BAR_HEIGHT,
                               (uint32_t)(this->shape.width),
                               (uint32_t)(this->shape.height), 0};
 
@@ -48,7 +59,7 @@ void Client::update_topology(int x, int y, int width, int height) {
                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
                            XCB_CONFIG_WINDOW_STACK_MODE,
-                       config_values);
+                       client_values);
 }
 
 // void client_button_press(xcb_generic_event_t *event) {

@@ -5,6 +5,7 @@
 #include <xcb/xcb_keysyms.h>
 #include <xcb/damage.h>
 
+#define BAR_HEIGHT 30
 #define MAX_WORKSPACES 4
 
 #define DEFAULT_FONT_SIZE 12

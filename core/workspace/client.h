@@ -7,6 +7,7 @@
 
 struct entity {
     xcb_window_t id = 0;
+    xcb_window_t frame = 0;
     xcb_pixmap_t pixmap = 0;
     xcb_render_picture_t picture = 0;
 };
