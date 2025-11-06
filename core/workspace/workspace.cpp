@@ -19,11 +19,11 @@
 int avail_width = 1280 - (WORKSPACE_GAP_SIZE * 2),
     avail_height = 720 - (WORKSPACE_GAP_SIZE * 2);
 
-Workspace::Workspace() {
-  xcb_pixmap_t wallpaper_pix =
-      generate_wallpaper_pixmap(screen, connection, root);
-  root_tile = xcb_generate_id(connection);
-  xcb_render_create_picture(connection, root_tile, wallpaper_pix, root_format,
+Workspace::Workspace(WorkspaceManager* workspace) {
+  xcb_pixmap_t wallpaper_pix = generate_wallpaper_pixmap(screen, connection, root);
+
+  wallpaper = xcb_generate_id(connection);
+  xcb_render_create_picture(connection, wallpaper, wallpaper_pix, root_format,
                             0, NULL);
 }
 
@@ -122,8 +122,8 @@ void Workspace::draw(xcb_connection_t *connection) {
     xcb_free_pixmap(connection, root_tmp);
   }
 
-  if (root_tile) {
-    xcb_render_composite(connection, XCB_RENDER_PICT_OP_SRC, root_tile,
+  if (wallpaper) {
+    xcb_render_composite(connection, XCB_RENDER_PICT_OP_SRC, wallpaper,
                          XCB_RENDER_PICTURE_NONE, root_buffer, 0, 0, 0, 0, 0, 0,
                          screen->width_in_pixels, screen->height_in_pixels);
   }

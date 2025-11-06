@@ -44,6 +44,10 @@ extern root_config              config;
 extern WorkspaceManager wom;
 extern xcb_render_pictformat_t root_format;
 
+extern xcb_render_picture_t root_picture;
+extern xcb_render_picture_t root_buffer;
+extern xcb_render_picture_t root_tile;
+
 cairo_t * create_cairo_context(xcb_window_t window);
 xcb_visualtype_t *get_visualtype(xcb_screen_t *screen);
 

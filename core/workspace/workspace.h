@@ -7,10 +7,11 @@
 #include <xcb/damage.h>
 
 class Client;
+class WorkspaceManager;
 
 class Workspace {
 public:
-  Workspace();
+  Workspace(WorkspaceManager* ma);
   ~Workspace();
 
 std::pair<Client*, size_t> find_client(xcb_window_t window);
@@ -27,9 +28,7 @@ std::vector<Client>& get_clients(){ return clients; };
 
 private:
     std::vector<Client> clients;
-
-    xcb_render_picture_t root_picture = 0;
-    xcb_render_picture_t root_buffer = 0;
-    xcb_render_picture_t root_tile = 0;
     Client* pinned_client = nullptr;
+    WorkspaceManager* ma;
+    xcb_render_picture_t wallpaper;  
 };

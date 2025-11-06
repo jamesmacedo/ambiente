@@ -1,5 +1,5 @@
 #pragma once
-#include "input/keymanager.h"
+#include "core/input/keymanager.h"
 #include "core/workspace/workspace_manager.h"
 #include "config.h"
 #include <unistd.h>

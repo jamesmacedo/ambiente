@@ -16,7 +16,7 @@ WorkspaceManager::WorkspaceManager() {}
 
 WorkspaceManager::WorkspaceManager(int width, int height)
     : width(width), height(height) {
-  this->workspaces.emplace_back(Workspace());
+  this->workspaces.emplace_back(this);
 }
 
 WorkspaceManager::~WorkspaceManager() {}
@@ -36,7 +36,7 @@ void WorkspaceManager::next() {
   }
 
   if (c_workspace == workspaces.size() - 1) {
-    this->workspaces.emplace_back(Workspace());
+    this->workspaces.emplace_back(this);
   }
 
   c_workspace++;

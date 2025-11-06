@@ -2,10 +2,10 @@
 #include <vector>
 #include <xcb/xcb.h>
 
-#include <xcb/damage.h>
-#include <xcb/render.h>
 #include "workspace.h"
 #include <memory.h>
+#include <xcb/damage.h>
+#include <xcb/render.h>
 
 class Client;
 
@@ -15,12 +15,12 @@ public:
   WorkspaceManager();
   ~WorkspaceManager();
 
-  Workspace* current() { return &workspaces[c_workspace]; };
+  Workspace *current() { return &workspaces[c_workspace]; };
   void add_client(Client c);
 
   void previous();
   void next();
-
+  
 private:
   size_t c_workspace = 0;
   std::vector<Workspace> workspaces = {};

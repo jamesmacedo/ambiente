@@ -18,8 +18,9 @@
 #include <xcb/xcb_renderutil.h>
 
 #include "core/workspace/workspace_manager.h"
+#include "core/barra/barra.h"
 #include "core/workspace/client.h"
-#include "input/keymanager.h"
+#include "core/input/keymanager.h"
 #include "config/keybindings.h"
 #include "config/config.h"
 
@@ -36,24 +37,12 @@ const xcb_query_extension_reply_t *render_ext;
 
 xcb_render_pictformat_t root_format;
 
-WorkspaceManager wom;
+xcb_render_picture_t root_picture = 0;
+xcb_render_picture_t root_buffer = 0;
+// xcb_render_picture_t root_tile = 0;
 
-// xcb_atom_t get_atom(const char *name) {
-//     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(
-//         connection,
-//         0,
-//         strlen(name),
-//         name
-//     );
-//     xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(connection, cookie, NULL);
-//     if (!reply) {
-//         fprintf(stderr, "Falha ao obter átomo: %s\n", name);
-//         return XCB_ATOM_NONE;
-//     }
-//     xcb_atom_t atom = reply->atom;
-//     free(reply);
-//     return atom;
-// }
+WorkspaceManager wom;
+// Barra barra;
 
 void setup() {
     connection = xcb_connect(NULL, NULL);
@@ -143,8 +132,9 @@ void setup() {
     root_format = pict_forminfo->format;
     
     wom = WorkspaceManager(screen->width_in_pixels, screen->height_in_pixels);
-
     wom.current()->draw(connection);
+
+    // barra = Barra();
     xcb_flush(connection);
 }
 
@@ -162,6 +152,14 @@ void event_loop() {
 
         if(response_type == (XCB_DAMAGE_NOTIFY + damage_ext->first_event)){
                 xcb_damage_notify_event_t *dn = (xcb_damage_notify_event_t *) event;
+
+                std::cout << "Damage recebido: " << dn->drawable << std::endl;
+
+                // if(dn->drawable == barra.get_id()){
+                //     std::cout << "Damage barra: " << dn->drawable << std::endl;
+                //     barra.draw();
+                // }
+
                 wom.current()->damaged(dn);
         }
 
