@@ -42,7 +42,7 @@ xcb_render_picture_t root_buffer = 0;
 // xcb_render_picture_t root_tile = 0;
 
 WorkspaceManager wom;
-// Barra barra;
+Barra* barra = nullptr;
 
 void setup() {
     connection = xcb_connect(NULL, NULL);
@@ -134,7 +134,7 @@ void setup() {
     wom = WorkspaceManager(screen->width_in_pixels, screen->height_in_pixels);
     wom.current()->draw(connection);
 
-    // barra = Barra();
+    barra = new Barra;
     xcb_flush(connection);
 }
 
@@ -155,10 +155,10 @@ void event_loop() {
 
                 std::cout << "Damage recebido: " << dn->drawable << std::endl;
 
-                // if(dn->drawable == barra.get_id()){
-                //     std::cout << "Damage barra: " << dn->drawable << std::endl;
-                //     barra.draw();
-                // }
+                if(dn->drawable == barra->get_id()){
+                    std::cout << "Damage barra: " << dn->drawable << std::endl;
+                    barra->damaged(dn);
+                }
 
                 wom.current()->damaged(dn);
         }

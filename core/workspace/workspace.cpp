@@ -2,10 +2,10 @@
 #include "client.h"
 #include "config/config.h"
 
-#include "utils/client.cpp"
+#include "utils/client.h"
 
 #include "config/config.h"
-#include "utils/wallpaper.cpp"
+#include "utils/wallpaper.h"
 #include <algorithm>
 #include <iostream>
 #include <utility>

@@ -19,6 +19,7 @@ public:
     Client(entity window, xcb_damage_damage_t damage);
     ~Client();
 
+    void init(entity window, xcb_damage_damage_t damage);
     void draw(xcb_render_picture_t buffer);
     entity& get_window(){ return window;};
     bool is_mapped(){ return mapped; };

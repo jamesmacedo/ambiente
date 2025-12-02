@@ -18,6 +18,11 @@ Client::Client(entity window, xcb_damage_damage_t damage)
     : window(window), damage(damage) {}
 Client::~Client() {}
 
+void Client::init(entity window, xcb_damage_damage_t damage){
+    this->window = window;
+    this->damage = damage;
+}
+
 void Client::draw(xcb_render_picture_t buffer) {
   xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER,
                        this->window.picture, XCB_RENDER_PICTURE_NONE, buffer, 0,

@@ -2,6 +2,8 @@
 #include "config/config.h"
 #include <iostream>
 #include <string.h>
+#include "utils/client.h"
+#include <xcb/xcb_renderutil.h>
 
 xcb_atom_t get_atom(const char *name) {
   xcb_intern_atom_cookie_t cookie =
@@ -51,8 +53,33 @@ Barra::Barra() {
 
   /* 6️⃣ Tornar visível */
   xcb_map_window(connection, id);
+  this->init({id, 0, 0}, damage);
 };
 
-void Barra::draw(){
-     
+
+void Barra::damaged(xcb_damage_notify_event_t *dn){
+    if (!this->get_window().picture) {
+
+      xcb_get_window_attributes_cookie_t attr_cookie =
+          xcb_get_window_attributes(connection, this->get_window().id);
+      xcb_get_window_attributes_reply_t *attr_reply =
+          xcb_get_window_attributes_reply(connection, attr_cookie, NULL);
+      xcb_render_pictvisual_t *pict_format = xcb_render_util_find_visual_format(
+          xcb_render_util_query_formats(connection), attr_reply->visual);
+
+      std::pair<xcb_pixmap_t, xcb_render_picture_t> cli =
+          create_picture_from_window(this->get_window().id, pict_format);
+
+      this->update_visuals(cli.first, cli.second);
+
+      std::cout << "PICTURE CRIADA " << cli.second << std::endl;
+
+      free(attr_reply);
+    }
+
+    this->draw(root_buffer);
+
+    xcb_damage_subtract(connection, dn->damage, XCB_XFIXES_REGION_NONE,
+                        XCB_XFIXES_REGION_NONE);
+    xcb_flush(connection);
 }

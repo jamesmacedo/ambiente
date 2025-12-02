@@ -6,8 +6,9 @@ project('ambiente', 'cpp',
 fs = import('python')
 
 src = include_directories('core')
+utils = include_directories('utils')
 
-cpp_files = run_command('find', 'core', '-name', '*.cpp').stdout().strip().split('\n')
+cpp_files = run_command('find', '.', '-name', '*.cpp', '!', '-name', 'ambiente.cpp').stdout().strip().split('\n')
 
 srcs = files('ambiente.cpp')
 foreach f : cpp_files
@@ -26,7 +27,7 @@ xcb_render_util = dependency('xcb-renderutil', required: true)
 cairo = dependency('cairo', required: true)
 
 executable('ambiente', srcs,
-  include_directories: src,
+  include_directories: [src, utils],
   dependencies: [
     xcb, xcb_ewmh, xcb_keysyms,
     xcb_shape, xcb_damage, xcb_xfixes,
